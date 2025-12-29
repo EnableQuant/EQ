@@ -147,51 +147,52 @@ Plotly.newPlot("robustnessSurface", [{
 
 
 
-const xRange = [], yRange = [], zRange = [], stabilitySurface = [];
+// ================= 3D Robustness Surface for PCA Pipeline =================
+const xBackward = [], yForward = [], pcaStabilitySurface = [];
 
-// Define axes ranges
-for (let x = 0.0; x <= 1.0; x += 0.02) xRange.push(x);
-for (let y = 0.0; y <= 1.0; y += 0.02) yRange.push(y);
-for (let z = 0.0; z <= 1.0; z += 0.02) zRange.push(z);
+// Define axis ranges
+for (let x = 0.0; x <= 1.0; x += 0.02) xBackward.push(x);
+for (let y = 0.0; y <= 1.0; y += 0.02) yForward.push(y);
 
-// Generate rugged stability surface
-for (let i = 0; i < xRange.length; i++) {
+// Generate rugged surface
+for (let i = 0; i < xBackward.length; i++) {
   const row = [];
-  for (let j = 0; j < yRange.length; j++) {
-    const x = xRange[i];
-    const y = yRange[j];
+  for (let j = 0; j < yForward.length; j++) {
+    const x = xBackward[i];  // backward test retention
+    const y = yForward[j];   // forward test retention
 
-    // Z-axis influence: stress robustness
-    const zInfluence = Math.exp(-Math.pow((0.9 - zRange[Math.floor(zRange.length/2)]) / 0.1, 2));
+    // Stress/sensitivity influence (fixed midpoint for surface)
+    const zStress = 0.9;
+    const stressFactor = Math.exp(-Math.pow((zStress - 0.9)/0.1, 2));
 
     // Combine backward, forward, stress
     let stability =
-      Math.exp(-Math.pow((x - 0.45)/0.1,2)) *  // backward retention
-      Math.exp(-Math.pow((y - 0.8)/0.1,2)) *   // forward retention
-      zInfluence;                               // stress/sensitivity
+      Math.exp(-Math.pow((x - 0.45)/0.1, 2)) * // backward target ~0.45
+      Math.exp(-Math.pow((y - 0.8)/0.1, 2)) *  // forward target ~0.8
+      stressFactor;                             // stress robustness
 
-    // Add ruggedness
+    // Add ruggedness/noise
     stability += 0.05 * Math.random();
-
     stability = Math.max(0, Math.min(1, stability));
+
     row.push(stability);
   }
-  stabilitySurface.push(row);
+  pcaStabilitySurface.push(row);
 }
 
-// Plot 3D surface
-Plotly.newPlot("pcaCluster", [{
+// Plot the surface
+Plotly.newPlot("pcaPipelineSurface", [{
   type: "surface",
-  x: xRange,
-  y: yRange,
-  z: stabilitySurface,
+  x: xBackward,
+  y: yForward,
+  z: pcaStabilitySurface,
   colorscale: "Viridis",
   showscale: true,
   contours: { z: { show:true, usecolormap:true } }
 }], {
-  paper_bgcolor:"#0b0f14",
-  plot_bgcolor:"#0b0f14",
-  margin: { l:0,r:0,b:0,t:0 },
+  paper_bgcolor: "#0b0f14",
+  plot_bgcolor: "#0b0f14",
+  margin: { l:0, r:0, b:0, t:0 },
   scene: {
     xaxis: { title:"Backward Test Retention", range:[0,1] },
     yaxis: { title:"Forward Test Retention", range:[0,1] },
