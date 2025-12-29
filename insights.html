@@ -6,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <link rel="stylesheet" href="css/style.css" />
-
-  <!-- Plotly for 3D visualizations -->
   <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 </head>
 
@@ -24,37 +22,39 @@
   <section class="hero">
     <h1>Quantitative Research Insights</h1>
     <p>
-      Visual exploration of high-dimensional parameter spaces,
-      robustness metrics, and statistical factor behavior
-      across multi-asset environments.
+      Visual analysis of robustness, stability, and statistical behavior
+      across high-dimensional parameter spaces and multi-asset regimes.
     </p>
   </section>
 
+  <!-- ================= ROBUSTNESS SURFACE ================= -->
   <section class="mission">
-    <h2>3D Parameter Space & Robustness</h2>
+    <h2>Parameter Robustness Landscape</h2>
     <p>
-      Each point represents a unique parameter configuration evaluated
-      through historical simulation and robustness testing.
+      This surface illustrates regions of parameter stability that persist
+      across regime shifts, perturbations, and execution uncertainty.
     </p>
-    <div id="param3d" style="height:500px;"></div>
+    <div id="robustnessSurface" style="height:520px;"></div>
   </section>
 
+  <!-- ================= PCA CLUSTERS ================= -->
   <section class="mission">
-    <h2>PCA Factor Decomposition</h2>
+    <h2>PCA & Parameter Clustering</h2>
     <p>
-      Dimensionality reduction applied to parameter outcomes
-      to identify dominant stability factors and regime sensitivity.
+      Dimensionality reduction reveals structured clusters of statistically
+      similar configurations, separating robust regions from unstable outliers.
     </p>
-    <div id="pca3d" style="height:500px;"></div>
+    <div id="pcaCluster" style="height:520px;"></div>
   </section>
 
+  <!-- ================= ALPHA BETA SURFACE ================= -->
   <section class="mission">
-    <h2>Alpha & Beta Stability (Statistical)</h2>
+    <h2>Alpha–Beta Stability Manifold</h2>
     <p>
-      Alpha represents consistent statistical deviation from benchmark dynamics,
-      while beta measures sensitivity to underlying market factors.
+      Alpha represents a small but persistent statistical deviation from
+      benchmark dynamics, while beta captures sensitivity to systemic factors.
     </p>
-    <div id="alphaBeta" style="height:500px;"></div>
+    <div id="alphaBetaSurface" style="height:520px;"></div>
   </section>
 
   <footer>
@@ -62,72 +62,108 @@
   </footer>
 
   <script>
-    /* ---------- Mock Data Generators ---------- */
-    function randArray(n, scale = 1) {
-      return Array.from({ length: n }, () => (Math.random() - 0.5) * scale);
+    /* ===================== ROBUSTNESS SURFACE ===================== */
+    const rX = [];
+    const rY = [];
+    const rZ = [];
+
+    for (let i = 0; i < 40; i++) {
+      rX.push(i * 0.25);
+      rY.push(i * 0.25);
     }
 
-    const N = 300;
-
-    /* ---------- 3D Parameter Space ---------- */
-    Plotly.newPlot("param3d", [{
-      x: randArray(N, 100),
-      y: randArray(N, 50),
-      z: randArray(N, 10),
-      mode: "markers",
-      type: "scatter3d",
-      marker: {
-        size: 4,
-        color: randArray(N, 1),
-        colorscale: "Viridis",
-        opacity: 0.8
+    for (let i = 0; i < rX.length; i++) {
+      const row = [];
+      for (let j = 0; j < rY.length; j++) {
+        row.push(
+          Math.exp(-0.15 * rX[i]) *
+          Math.exp(-0.1 * rY[j]) +
+          Math.random() * 0.03
+        );
       }
+      rZ.push(row);
+    }
+
+    Plotly.newPlot("robustnessSurface", [{
+      type: "surface",
+      x: rX,
+      y: rY,
+      z: rZ,
+      colorscale: "Viridis"
     }], {
       paper_bgcolor: "#0b0f14",
       plot_bgcolor: "#0b0f14",
       scene: {
-        xaxis: { title: "Parameter Dimension A" },
-        yaxis: { title: "Parameter Dimension B" },
+        xaxis: { title: "Parameter Smoothness" },
+        yaxis: { title: "Regime Variability" },
         zaxis: { title: "Robustness Score" }
       }
     });
 
-    /* ---------- PCA Factor Cloud ---------- */
-    Plotly.newPlot("pca3d", [{
-      x: randArray(N, 3),
-      y: randArray(N, 3),
-      z: randArray(N, 3),
-      mode: "markers",
+    /* ===================== PCA CLUSTER CLOUD ===================== */
+    const N = 300;
+    const pcaX = [];
+    const pcaY = [];
+    const pcaZ = [];
+    const colors = [];
+
+    for (let i = 0; i < N; i++) {
+      const cluster = i % 3;
+      pcaX.push(Math.random() * 1 + cluster * 1.5);
+      pcaY.push(Math.random() * 1 + cluster * 1.5);
+      pcaZ.push(Math.random() * 1);
+      colors.push(cluster);
+    }
+
+    Plotly.newPlot("pcaCluster", [{
       type: "scatter3d",
+      mode: "markers",
+      x: pcaX,
+      y: pcaY,
+      z: pcaZ,
       marker: {
         size: 4,
-        color: randArray(N, 1),
+        color: colors,
         colorscale: "Plasma",
-        opacity: 0.8
+        opacity: 0.85
       }
     }], {
       paper_bgcolor: "#0b0f14",
       plot_bgcolor: "#0b0f14",
       scene: {
-        xaxis: { title: "PCA Factor 1" },
-        yaxis: { title: "PCA Factor 2" },
-        zaxis: { title: "PCA Factor 3" }
+        xaxis: { title: "PCA Component 1" },
+        yaxis: { title: "PCA Component 2" },
+        zaxis: { title: "Stability Metric" }
       }
     });
 
-    /* ---------- Alpha vs Beta Surface ---------- */
-    const alpha = Array.from({ length: 30 }, (_, i) => i * 0.1);
-    const beta = Array.from({ length: 30 }, (_, i) => i * 0.1);
+    /* ===================== ALPHA BETA MANIFOLD ===================== */
+    const alpha = [];
+    const beta = [];
+    const stability = [];
 
-    const zSurface = alpha.map(a =>
-      beta.map(b => Math.exp(-a * 0.5) * Math.cos(b))
-    );
+    for (let i = 0; i < 35; i++) {
+      alpha.push(i * 0.05);
+      beta.push(i * 0.05);
+    }
 
-    Plotly.newPlot("alphaBeta", [{
+    for (let i = 0; i < alpha.length; i++) {
+      const row = [];
+      for (let j = 0; j < beta.length; j++) {
+        row.push(
+          Math.exp(-alpha[i] * 0.8) *
+          Math.cos(beta[j]) +
+          0.05
+        );
+      }
+      stability.push(row);
+    }
+
+    Plotly.newPlot("alphaBetaSurface", [{
+      type: "surface",
       x: alpha,
       y: beta,
-      z: zSurface,
-      type: "surface",
+      z: stability,
       colorscale: "Cividis"
     }], {
       paper_bgcolor: "#0b0f14",
@@ -135,9 +171,10 @@
       scene: {
         xaxis: { title: "Alpha (Statistical Edge)" },
         yaxis: { title: "Beta (Factor Sensitivity)" },
-        zaxis: { title: "Stability Surface" }
+        zaxis: { title: "Stability Score" }
       }
     });
   </script>
 </body>
 </html>
+
