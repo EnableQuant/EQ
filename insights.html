@@ -40,13 +40,13 @@
 
 <!-- ================= PCA ROBUSTNESS MANIFOLD (Pipeline) ================= -->
 <section class="mission">
-  <h2>PCA & Parameter Robustness Manifold</h2>
-  <p>
-    This surface represents the stability of parameter configurations across our pipeline: 
-    backward test retention (40–50%), forward test retention (80%+), and stress/sensitivity analysis (±10%). 
-    Peaks indicate highly robust parameter sets; valleys correspond to fragile or overfitted configurations.
-  </p>
-  <div id="pcaPipelineSurface" style="height:520px;"></div>
+<h2>Parameter Pipeline 4D Visualization</h2>
+<p>
+  Each point represents a parameter. X = Training Profit, Y = Backward Test Profit, Z = Forward Test Profit, 
+  Color = Stress Test Survival. Peaks correspond to parameters consistently surviving all stages.
+</p>
+
+<div id="pipeline4D"></div>
 </section>
 
   <!-- ================= ALPHA BETA SURFACE ================= -->
@@ -148,58 +148,78 @@ Plotly.newPlot("robustnessSurface", [{
 
 
 
-// ================= 3D Robustness Surface for PCA Pipeline =================
-const xBackward = [], yForward = [], pcaStabilitySurface = [];
+// ================= PARAMETERS SIMULATION =================
 
-// Define axis ranges
-for (let x = 0.0; x <= 1.0; x += 0.02) xBackward.push(x);
-for (let y = 0.0; y <= 1.0; y += 0.02) yForward.push(y);
+// Stage counts
+const totalParams = 100000;
+const trainingTopPct = 0.10; // 10% go to backward
+const backwardTopPct = 0.25; // 20-30% go to forward
+const forwardTopPct = 0.45;  // 40-50% go to stress
+const stressTopPct = 0.3;    // final 5-10 params
 
-// Generate rugged surface
-for (let i = 0; i < xBackward.length; i++) {
-  const row = [];
-  for (let j = 0; j < yForward.length; j++) {
-    const x = xBackward[i];  // backward test retention
-    const y = yForward[j];   // forward test retention
-
-    // Stress/sensitivity influence (fixed midpoint for surface)
-    const zStress = 0.9;
-    const stressFactor = Math.exp(-Math.pow((zStress - 0.9)/0.1, 2));
-
-    // Combine backward, forward, stress
-    let stability =
-      Math.exp(-Math.pow((x - 0.45)/0.1, 2)) * // backward target ~0.45
-      Math.exp(-Math.pow((y - 0.8)/0.1, 2)) *  // forward target ~0.8
-      stressFactor;                             // stress robustness
-
-    // Add ruggedness/noise
-    stability += 0.05 * Math.random();
-    stability = Math.max(0, Math.min(1, stability));
-
-    row.push(stability);
-  }
-  pcaStabilitySurface.push(row);
+// Simulate Training profits (0-1 normalized)
+let params = [];
+for(let i=0; i<totalParams; i++){
+    params.push({id:i, trainProfit: Math.random()});
 }
 
-// Plot the surface
-Plotly.newPlot("pcaPipelineSurface", [{
-  type: "surface",
-  x: xBackward,
-  y: yForward,
-  z: pcaStabilitySurface,
-  colorscale: "Viridis",
-  showscale: true,
-  contours: { z: { show:true, usecolormap:true } }
+// Select top 10% training
+let topTrain = params.sort((a,b)=>b.trainProfit - a.trainProfit).slice(0,totalParams*trainingTopPct);
+
+// Backward test
+topTrain.forEach(p=>{
+    // Slight randomness, some fail backward test
+    p.backwardProfit = p.trainProfit*0.8 + 0.2*Math.random();
+});
+
+// Pick top 25% for forward test
+let topBackward = topTrain.sort((a,b)=>b.backwardProfit - a.backwardProfit).slice(0,topTrain.length*backwardTopPct);
+
+// Forward test
+topBackward.forEach(p=>{
+    p.forwardProfit = p.backwardProfit*0.85 + 0.15*Math.random();
+});
+
+// Pick top 45% for stress
+let topForward = topBackward.sort((a,b)=>b.forwardProfit - a.forwardProfit).slice(0,Math.floor(topBackward.length*forwardTopPct));
+
+// Stress test: survival metric
+topForward.forEach(p=>{
+    p.stressSurvival = Math.random() > 0.6 ? 1 : 0; // 40% fail
+});
+
+// Prepare Plotly arrays
+let x=[], y=[], z=[], color=[];
+topForward.forEach(p=>{
+    x.push(p.trainProfit);
+    y.push(p.backwardProfit);
+    z.push(p.forwardProfit);
+    color.push(p.stressSurvival); // 0 = failed, 1 = survived
+});
+
+// ================= PLOTLY =================
+Plotly.newPlot("pipeline4D", [{
+    x: x,
+    y: y,
+    z: z,
+    mode: "markers",
+    type: "scatter3d",
+    marker: {
+        size: 3,
+        color: color,
+        colorscale: [[0,'red'],[1,'lime']],
+        opacity: 0.8
+    }
 }], {
-  paper_bgcolor: "#0b0f14",
-  plot_bgcolor: "#0b0f14",
-  margin: { l:0, r:0, b:0, t:0 },
-  scene: {
-    xaxis: { title:"Backward Test Retention", range:[0,1] },
-    yaxis: { title:"Forward Test Retention", range:[0,1] },
-    zaxis: { title:"Stress / Sensitivity", range:[0,1] },
-    camera: { eye:{x:1.5,y:1.4,z:0.9} }
-  }
+    paper_bgcolor: "#0b0f14",
+    plot_bgcolor: "#0b0f14",
+    margin: { l:0,r:0,b:0,t:0 },
+    scene:{
+        xaxis: {title:"Training Profit", range:[0,1]},
+        yaxis: {title:"Backward Profit", range:[0,1]},
+        zaxis: {title:"Forward Profit", range:[0,1]},
+        camera: {eye:{x:1.7,y:1.7,z:0.9}}
+    }
 });
 
 
