@@ -147,81 +147,56 @@ Plotly.newPlot("robustnessSurface", [{
 
 
 
-/* ================= RUGGED ROBUSTNESS TERRAIN ================= */
+const xRange = [], yRange = [], zRange = [], stabilitySurface = [];
 
-const xAxis = [];
-const yAxis = [];
-const zTerrain = [];
+// Define axes ranges
+for (let x = 0.0; x <= 1.0; x += 0.02) xRange.push(x);
+for (let y = 0.0; y <= 1.0; y += 0.02) yRange.push(y);
+for (let z = 0.0; z <= 1.0; z += 0.02) zRange.push(z);
 
-// Axes (continuous space)
-for (let x = 0; x <= 1; x += 0.025) xAxis.push(x);
-for (let y = 0; y <= 1; y += 0.025) yAxis.push(y);
-
-// Terrain generation
-for (let i = 0; i < xAxis.length; i++) {
+// Generate rugged stability surface
+for (let i = 0; i < xRange.length; i++) {
   const row = [];
-  for (let j = 0; j < yAxis.length; j++) {
+  for (let j = 0; j < yRange.length; j++) {
+    const x = xRange[i];
+    const y = yRange[j];
 
-    const x = xAxis[i];
-    const y = yAxis[j];
+    // Z-axis influence: stress robustness
+    const zInfluence = Math.exp(-Math.pow((0.9 - zRange[Math.floor(zRange.length/2)]) / 0.1, 2));
 
-    // Core robustness basin (flat-ish, not peaky)
-    const basin =
-      Math.exp(-Math.pow((x - 0.65) / 0.25, 2)) *
-      Math.exp(-Math.pow((y - 0.35) / 0.22, 2));
+    // Combine backward, forward, stress
+    let stability =
+      Math.exp(-Math.pow((x - 0.45)/0.1,2)) *  // backward retention
+      Math.exp(-Math.pow((y - 0.8)/0.1,2)) *   // forward retention
+      zInfluence;                               // stress/sensitivity
 
-    // Regime fracture (non-smooth discontinuity)
-    const fracture =
-      Math.sin(6 * x + 3 * y) *
-      Math.cos(4 * y) *
-      0.15;
+    // Add ruggedness
+    stability += 0.05 * Math.random();
 
-    // Overfitting cliffs
-    const cliff =
-      x < 0.4 || y > 0.7 ? -0.35 : 0;
-
-    // Microstructure noise (low frequency)
-    const noise =
-      (Math.random() - 0.5) * 0.08;
-
-    let z =
-      0.7 * basin +
-      fracture +
-      cliff +
-      noise;
-
-    // Hard floor & cap (survivability)
-    z = Math.max(0, Math.min(1, z));
-
-    row.push(z);
+    stability = Math.max(0, Math.min(1, stability));
+    row.push(stability);
   }
-  zTerrain.push(row);
+  stabilitySurface.push(row);
 }
 
+// Plot 3D surface
 Plotly.newPlot("pcaCluster", [{
   type: "surface",
-  x: xAxis,
-  y: yAxis,
-  z: zTerrain,
-  colorscale: "Turbo",
-  showscale: false,
-  contours: {
-    z: {
-      show: true,
-      usecolormap: true,
-      highlightcolor: "#ffffff",
-      project: { z: true }
-    }
-  }
+  x: xRange,
+  y: yRange,
+  z: stabilitySurface,
+  colorscale: "Viridis",
+  showscale: true,
+  contours: { z: { show:true, usecolormap:true } }
 }], {
-  paper_bgcolor: "#0b0f14",
-  plot_bgcolor: "#0b0f14",
-  margin: { l: 0, r: 0, b: 0, t: 0 },
+  paper_bgcolor:"#0b0f14",
+  plot_bgcolor:"#0b0f14",
+  margin: { l:0,r:0,b:0,t:0 },
   scene: {
-    xaxis: { title: "Regime Scale / Window Structure" },
-    yaxis: { title: "Statistical Threshold Sensitivity" },
-    zaxis: { title: "Robustness Height" },
-    camera: { eye: { x: 1.7, y: 1.3, z: 0.8 } }
+    xaxis: { title:"Backward Test Retention", range:[0,1] },
+    yaxis: { title:"Forward Test Retention", range:[0,1] },
+    zaxis: { title:"Stress / Sensitivity", range:[0,1] },
+    camera: { eye:{x:1.5,y:1.4,z:0.9} }
   }
 });
 
