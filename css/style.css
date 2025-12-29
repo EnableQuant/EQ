@@ -1,0 +1,92 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0b0f14;
+  color: #e6e6e6;
+  line-height: 1.6;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 24px 60px;
+  background: rgba(11, 15, 20, 0.9);
+  border-bottom: 1px solid #1f2933;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.nav-links a {
+  color: #cbd5e1;
+  margin-left: 30px;
+  text-decoration: none;
+  font-weight: 400;
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+}
+
+.hero {
+  padding: 120px 60px;
+  max-width: 900px;
+}
+
+.hero h1 {
+  font-size: 44px;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.hero p {
+  font-size: 18px;
+  color: #aab4c3;
+}
+
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 40px;
+  padding: 80px 60px;
+}
+
+.pillar h3 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.pillar p {
+  font-size: 15px;
+  color: #b0bac9;
+}
+
+.mission {
+  padding: 80px 60px;
+  max-width: 800px;
+}
+
+.mission h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.mission p {
+  font-size: 16px;
+  color: #b0bac9;
+}
+
+footer {
+  padding: 40px 60px;
+  border-top: 1px solid #1f2933;
+  color: #7b8794;
+  font-size: 14px;
+}
