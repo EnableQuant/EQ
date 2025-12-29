@@ -1,220 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>EQ — Research Insights</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link rel="stylesheet" href="css/style.css" />
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+<meta charset="UTF-8">
+<title>Parameter Robustness Landscape</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
+  #plot { width: 100%; height: 100vh; }
+</style>
 </head>
-
 <body>
-  <nav class="navbar">
-    <div class="logo">EQ</div>
-    <div class="nav-links">
-      <a href="index.html">What We Do</a>
-      <a href="research.html">Research</a>
-      <a href="insights.html">Insights</a>
-    </div>
-  </nav>
-
-  <section class="hero">
-    <h1>Quantitative Research Insights</h1>
-    <p>
-      Visual analysis of parameter stability, regime robustness,
-      and statistical structure across large-scale simulations.
-    </p>
-  </section>
-
-  <!-- ================= ROBUSTNESS SURFACE ================= -->
-  <section class="mission">
-    <h2>Parameter Robustness Landscape</h2>
-    <p>
-      Stability of mean-reversion model configurations across rolling
-      window lengths and statistical entry thresholds. Robust regions
-      exhibit smooth degradation under temporal shifts and stress.
-    </p>
-    <div id="robustnessSurface" style="height:520px;"></div>
-  </section>
-
-  <!-- ================= PCA CLUSTERS ================= -->
-  <section class="mission">
-    <h2>PCA & Parameter Clustering</h2>
-    <p>
-      Dimensionality reduction highlights structured regions of
-      stable parameter behavior and separates fragile configurations.
-    </p>
-    <div id="pcaCluster" style="height:520px;"></div>
-  </section>
-
-  <!-- ================= ALPHA BETA SURFACE ================= -->
-  <section class="mission">
-    <h2>Alpha–Beta Stability Manifold</h2>
-    <p>
-      Relationship between small statistical edge (alpha),
-      factor sensitivity (beta), and long-term stability.
-    </p>
-    <div id="alphaBetaSurface" style="height:520px;"></div>
-  </section>
-
-  <footer>
-    <p>© 2025 EQ — Enable Quant</p>
-  </footer>
+<div id="plot"></div>
 
 <script>
-/* ================= COMMON LAYOUT ================= */
-const baseLayout = {
-  paper_bgcolor: "#0b0f14",
-  plot_bgcolor: "#0b0f14",
-  margin: { l: 0, r: 0, b: 0, t: 0 }
-};
+  // Generate mock data based on your parameter ranges
+  const rollingWindow = [];
+  const entryZ = [];
+  const exitZ = [];
+  const robustness = [];
 
-function sceneConfig(xTitle, yTitle, zTitle) {
-  return {
-    xaxis: {
-      title: { text: xTitle, standoff: 20, font: { size: 12 } },
-      tickfont: { size: 10 },
-      nticks: 5
+  for(let i=0; i<500; i++){
+    const rw = 500 + Math.random()*1000; // 500 → 1500
+    const ez = 2 + Math.random()*0.5;    // 2 → 2.5
+    const xz = 0.1 + Math.random()*0.5;  // 0.1 → 0.6
+    const score = Math.exp(-((rw-1000)**2)/(2*200**2) - ((ez-2.5)**2)/0.1 - ((xz-0.4)**2)/0.02); // Gaussian style mock robustness
+
+    rollingWindow.push(rw);
+    entryZ.push(ez);
+    exitZ.push(xz);
+    robustness.push(score);
+  }
+
+  const data = [{
+    x: rollingWindow,
+    y: entryZ,
+    z: exitZ,
+    mode: 'markers',
+    marker: {
+      size: 5,
+      color: robustness,
+      colorscale: 'Viridis',
+      showscale: true,
+      colorbar: {title: 'Robustness'}
     },
-    yaxis: {
-      title: { text: yTitle, standoff: 20, font: { size: 12 } },
-      tickfont: { size: 10 },
-      nticks: 5
+    type: 'scatter3d'
+  }];
+
+  const layout = {
+    title: 'Parameter Robustness Landscape',
+    scene: {
+      xaxis: {title: 'Rolling Window Size', range:[500,1500]},
+      yaxis: {title: 'Entry Z', range:[2,3.5]},
+      zaxis: {title: 'Exit Z', range:[0.1,0.6]},
+      camera: {eye: {x:1.5, y:1.5, z:0.8}}
     },
-    zaxis: {
-      title: { text: zTitle, standoff: 10, font: { size: 12 } },
-      tickfont: { size: 10 },
-      nticks: 4
-    },
-    camera: {
-      eye: { x: 1.5, y: 1.4, z: 0.9 }
-    }
+    paper_bgcolor: '#111',
+    plot_bgcolor: '#111',
+    font: {color: '#fff'}
   };
-}
 
-/* ================= ROBUSTNESS SURFACE (YOUR LOGIC) ================= */
-
-const windowRange = [];
-const zEntryRange = [];
-const stabilitySurface = [];
-
-// Rolling window: 50 → 150
-for (let w = 50; w <= 150; w += 5) {
-  windowRange.push(w);
-}
-
-// Entry Z-score: 3.5 → 4.5
-for (let z = 3.5; z <= 4.5; z += 0.05) {
-  zEntryRange.push(z);
-}
-
-// Stability manifold centered at (100, 4)
-for (let i = 0; i < windowRange.length; i++) {
-  const row = [];
-  for (let j = 0; j < zEntryRange.length; j++) {
-    const w = windowRange[i];
-    const z = zEntryRange[j];
-
-    const windowPenalty = Math.exp(-Math.pow((w - 100) / 35, 2));
-    const zPenalty = Math.exp(-Math.pow((z - 4) / 0.35, 2));
-
-    let stability =
-      0.9 * windowPenalty * zPenalty +
-      0.1 * Math.random(); // market noise
-
-    stability = Math.max(0, Math.min(1, stability));
-    row.push(stability);
-  }
-  stabilitySurface.push(row);
-}
-
-Plotly.newPlot("robustnessSurface", [{
-  type: "surface",
-  x: windowRange,
-  y: zEntryRange,
-  z: stabilitySurface,
-  colorscale: "Viridis",
-  showscale: false
-}], {
-  ...baseLayout,
-  scene: sceneConfig(
-    "Rolling Window Length",
-    "Entry Z-Score Threshold",
-    "Stability Score"
-  )
-});
-
-/* ================= PCA CLUSTER VISUAL ================= */
-
-const N = 300;
-const pcaX = [], pcaY = [], pcaZ = [], colors = [];
-
-for (let i = 0; i < N; i++) {
-  const cluster = i % 3;
-  pcaX.push(Math.random() + cluster * 1.6);
-  pcaY.push(Math.random() + cluster * 1.6);
-  pcaZ.push(Math.random());
-  colors.push(cluster);
-}
-
-Plotly.newPlot("pcaCluster", [{
-  type: "scatter3d",
-  mode: "markers",
-  x: pcaX,
-  y: pcaY,
-  z: pcaZ,
-  marker: {
-    size: 4,
-    color: colors,
-    colorscale: "Plasma",
-    opacity: 0.85
-  }
-}], {
-  ...baseLayout,
-  scene: sceneConfig(
-    "PCA Factor 1",
-    "PCA Factor 2",
-    "Stability"
-  )
-});
-
-/* ================= ALPHA–BETA STABILITY ================= */
-
-const alpha = [], beta = [], stability = [];
-
-for (let i = 0; i <= 30; i++) {
-  alpha.push(i * 0.05);
-  beta.push(i * 0.05);
-}
-
-for (let i = 0; i < alpha.length; i++) {
-  const row = [];
-  for (let j = 0; j < beta.length; j++) {
-    row.push(
-      Math.exp(-alpha[i] * 0.8) *
-      Math.cos(beta[j]) + 0.05
-    );
-  }
-  stability.push(row);
-}
-
-Plotly.newPlot("alphaBetaSurface", [{
-  type: "surface",
-  x: alpha,
-  y: beta,
-  z: stability,
-  colorscale: "Cividis",
-  showscale: false
-}], {
-  ...baseLayout,
-  scene: sceneConfig(
-    "Alpha (Statistical)",
-    "Beta (Factor Sensitivity)",
-    "Stability"
-  )
-});
+  Plotly.newPlot('plot', data, layout);
 </script>
-
 </body>
 </html>
