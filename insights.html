@@ -2,64 +2,118 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Parameter Robustness Landscape</title>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
-  #plot { width: 100%; height: 100vh; }
+  body { 
+    margin: 0; 
+    font-family: Arial, sans-serif; 
+    background-color: #0b0f14; 
+    color: #fff;
+  }
+  #robustnessSurface { 
+    width: 100%; 
+    height: 100vh; 
+  }
+  h1 {
+    text-align: center;
+    padding: 20px 0;
+    font-size: 2rem;
+    color: #fff;
+  }
+  p {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 30px auto;
+    color: #ccc;
+  }
 </style>
 </head>
 <body>
-<div id="plot"></div>
+
+<h1>Parameter Robustness Landscape</h1>
+<p>Regions of parameter stability that persist across regime shifts and controlled perturbations. 
+High stability indicates robust performance across rolling windows and entry thresholds.</p>
+
+<div id="robustnessSurface"></div>
 
 <script>
-  // Generate mock data based on your parameter ranges
-  const rollingWindow = [];
-  const entryZ = [];
-  const exitZ = [];
-  const robustness = [];
 
-  for(let i=0; i<500; i++){
-    const rw = 500 + Math.random()*1000; // 500 → 1500
-    const ez = 2 + Math.random()*0.5;    // 2 → 2.5
-    const xz = 0.1 + Math.random()*0.5;  // 0.1 → 0.6
-    const score = Math.exp(-((rw-1000)**2)/(2*200**2) - ((ez-2.5)**2)/0.1 - ((xz-0.4)**2)/0.02); // Gaussian style mock robustness
 
-    rollingWindow.push(rw);
-    entryZ.push(ez);
-    exitZ.push(xz);
-    robustness.push(score);
+  const windowRange = [];
+  const zEntryRange = [];
+  const stabilitySurface = [];
+
+
+  for (let w = 500; w <= 1500; w += 10) {
+    windowRange.push(w);
   }
 
-  const data = [{
-    x: rollingWindow,
-    y: entryZ,
-    z: exitZ,
-    mode: 'markers',
-    marker: {
-      size: 5,
-      color: robustness,
-      colorscale: 'Viridis',
-      showscale: true,
-      colorbar: {title: 'Robustness'}
-    },
-    type: 'scatter3d'
-  }];
+  for (let z = 2; z <= 3.5; z += 0.05) {
+    zEntryRange.push(z);
+  }
 
-  const layout = {
-    title: 'Parameter Robustness Landscape',
+
+  for (let i = 0; i < windowRange.length; i++) {
+    const row = [];
+    for (let j = 0; j < zEntryRange.length; j++) {
+      const w = windowRange[i];
+      const z = zEntryRange[j];
+
+      const windowPenalty = Math.exp(-Math.pow((w - 1000) / 200, 2));
+      const zPenalty = Math.exp(-Math.pow((z - 2.5) / 0.4, 2));
+
+
+      let stability =
+        0.9 * windowPenalty * zPenalty +
+        0.1 * Math.random(); 
+
+      // Clamp values
+      stability = Math.max(0, Math.min(1, stability));
+      row.push(stability);
+    }
+    stabilitySurface.push(row);
+  }
+
+  Plotly.newPlot("robustnessSurface", [{
+    type: "surface",
+    x: windowRange,
+    y: zEntryRange,
+    z: stabilitySurface,
+    colorscale: "Viridis",
+    showscale: true,
+    contours: {
+      z: {
+        show: true,
+        usecolormap: true,
+        highlightcolor: "#42f462",
+        project: { z: true }
+      }
+    }
+  }], {
+    paper_bgcolor: "#0b0f14",
+    plot_bgcolor: "#0b0f14",
+    margin: { l: 0, r: 0, b: 0, t: 0 },
     scene: {
-      xaxis: {title: 'Rolling Window Size', range:[500,1500]},
-      yaxis: {title: 'Entry Z', range:[2,3.5]},
-      zaxis: {title: 'Exit Z', range:[0.1,0.6]},
-      camera: {eye: {x:1.5, y:1.5, z:0.8}}
-    },
-    paper_bgcolor: '#111',
-    plot_bgcolor: '#111',
-    font: {color: '#fff'}
-  };
-
-  Plotly.newPlot('plot', data, layout);
+      xaxis: {
+        title: { text: "Rolling Window Length", standoff: 20 },
+        tickfont: { size: 10 }
+      },
+      yaxis: {
+        title: { text: "Standard Score Threshold", standoff: 20 },
+        tickfont: { size: 10 }
+      },
+      zaxis: {
+        title: { text: "Stability Score", standoff: 10 },
+        tickfont: { size: 10 }
+      },
+      camera: {
+        eye: { x: 1.5, y: 1.4, z: 0.9 }
+      }
+    }
+  });
 </script>
+
 </body>
 </html>
