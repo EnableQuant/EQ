@@ -148,12 +148,10 @@ Plotly.newPlot("robustnessSurface", [{
 });
 
 
-/* ================= PARAMETER SURVIVAL CLOUD ================= */
+/* ================= PARAMETER SURVIVAL UNIVERSE ================= */
 
-// Grid resolution (higher = heavier compute, looks cooler)
-const N = 28;
+const N = 32;
 
-// Axes represent abstract robustness dimensions
 const x = [];
 const y = [];
 const z = [];
@@ -169,24 +167,36 @@ for (let i = 0; i < N; i++) {
 
       /*
         X → Training consistency
-        Y → Temporal robustness (backward + forward)
-        Z → Structural resilience (stress & sensitivity)
+        Y → Temporal robustness
+        Z → Structural resilience
       */
 
-      // Broad initial parameter space
-      let density =
-        Math.exp(-Math.pow((X - 0.6) / 0.35, 2)) *
-        Math.exp(-Math.pow((Y - 0.5) / 0.25, 2)) *
-        Math.exp(-Math.pow((Z - 0.55) / 0.25, 2));
+      // Multiple robustness attractors (clusters)
+      const core1 =
+        Math.exp(-Math.pow((X - 0.55) / 0.22, 2)) *
+        Math.exp(-Math.pow((Y - 0.65) / 0.20, 2)) *
+        Math.exp(-Math.pow((Z - 0.75) / 0.18, 2));
 
-      // Forward-test fracture
-      density *= Math.exp(-Math.pow((Y - 0.75) / 0.18, 2));
+      const core2 =
+        Math.exp(-Math.pow((X - 0.35) / 0.30, 2)) *
+        Math.exp(-Math.pow((Y - 0.45) / 0.25, 2)) *
+        Math.exp(-Math.pow((Z - 0.55) / 0.30, 2));
 
-      // Stress-test erosion
-      density *= Math.exp(-Math.pow((Z - 0.8) / 0.15, 2));
+      const core3 =
+        Math.exp(-Math.pow((X - 0.75) / 0.18, 2)) *
+        Math.exp(-Math.pow((Y - 0.35) / 0.22, 2)) *
+        Math.exp(-Math.pow((Z - 0.45) / 0.20, 2));
 
-      // Ruggedness / non-stationarity
-      density += 0.04 * Math.random();
+      // Combine clusters
+      let density = 1.2 * core1 + 0.8 * core2 + 0.6 * core3;
+
+      // Non-stationarity / ruggedness
+      density +=
+        0.08 * Math.sin(10 * X) * Math.cos(10 * Y) +
+        0.06 * Math.sin(8 * Z);
+
+      // Noise floor
+      density += 0.05 * Math.random();
 
       x.push(X);
       y.push(Y);
@@ -203,12 +213,20 @@ Plotly.newPlot("parameterCloud", [{
   z: z,
   value: value,
 
-  isomin: 0.15,
-  isomax: 0.95,
+  isomin: 0.12,
+  isomax: 1.2,
 
-  opacity: 0.12,      // cloud-like
-  surface: { count: 18 },
-  colorscale: "Viridis"
+  opacity: 0.22,          // MUCH stronger
+  surface: { count: 28 }, // Dense layers
+
+  colorscale: [
+    [0.0, "#0b0f14"],
+    [0.2, "#1f3b4d"],
+    [0.4, "#3b6ea5"],
+    [0.6, "#6a5acd"],
+    [0.8, "#00f5ff"],
+    [1.0, "#ffffff"]
+  ]
 }], {
   paper_bgcolor: "#0b0f14",
   plot_bgcolor: "#0b0f14",
@@ -227,7 +245,7 @@ Plotly.newPlot("parameterCloud", [{
       range: [0, 1]
     },
     camera: {
-      eye: { x: 1.6, y: 1.5, z: 1.2 }
+      eye: { x: 1.8, y: 1.6, z: 1.4 }
     }
   }
 });
