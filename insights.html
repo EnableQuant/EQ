@@ -22,91 +22,28 @@
   <section class="hero">
     <h1>Quantitative Research Insights</h1>
     <p>
-      Structured visual analysis of robustness, stability,
-      and statistical behavior across high-dimensional
-      parameter spaces.
+      Visual analysis of parameter stability, regime robustness,
+      and statistical structure across large-scale simulations.
     </p>
   </section>
 
-
-<script>
-  /* ================= ROBUSTNESS SURFACE (REALISTIC) ================= */
-
-  const windowRange = [];
-  const zEntryRange = [];
-  const stabilitySurface = [];
-
- 
-  for (let w = 50; w <= 150; w += 5) {
-    windowRange.push(w);
-  }
-
-  
-  for (let z = 3.5; z <= 4.5; z += 0.05) {
-    zEntryRange.push(z);
-  }
-
- 
-  for (let i = 0; i < windowRange.length; i++) {
-    const row = [];
-    for (let j = 0; j < zEntryRange.length; j++) {
-      const w = windowRange[i];
-      const z = zEntryRange[j];
-
-     
-      const windowPenalty = Math.exp(-Math.pow((w - 100) / 35, 2));
-      const zPenalty = Math.exp(-Math.pow((z - 4) / 0.35, 2));
-
-    
-      let stability =
-        0.9 * windowPenalty * zPenalty +
-        0.1 * Math.random(); // market noise
-
-   
-      stability = Math.max(0, Math.min(1, stability));
-      row.push(stability);
-    }
-    stabilitySurface.push(row);
-  }
-
-  Plotly.newPlot("robustnessSurface", [{
-    type: "surface",
-    x: windowRange,
-    y: zEntryRange,
-    z: stabilitySurface,
-    colorscale: "Viridis",
-    showscale: false
-  }], {
-    paper_bgcolor: "#0b0f14",
-    plot_bgcolor: "#0b0f14",
-    margin: { l: 0, r: 0, b: 0, t: 0 },
-    scene: {
-      xaxis: {
-        title: { text: "Rolling Window Length", standoff: 20 },
-        tickfont: { size: 10 }
-      },
-      yaxis: {
-        title: { text: "Entry Z-Score Threshold", standoff: 20 },
-        tickfont: { size: 10 }
-      },
-      zaxis: {
-        title: { text: "Stability Score", standoff: 10 },
-        tickfont: { size: 10 }
-      },
-      camera: {
-        eye: { x: 1.5, y: 1.4, z: 0.9 }
-      }
-    }
-  });
-</script>
-
+  <!-- ================= ROBUSTNESS SURFACE ================= -->
+  <section class="mission">
+    <h2>Parameter Robustness Landscape</h2>
+    <p>
+      Stability of mean-reversion model configurations across rolling
+      window lengths and statistical entry thresholds. Robust regions
+      exhibit smooth degradation under temporal shifts and stress.
+    </p>
+    <div id="robustnessSurface" style="height:520px;"></div>
+  </section>
 
   <!-- ================= PCA CLUSTERS ================= -->
   <section class="mission">
     <h2>PCA & Parameter Clustering</h2>
     <p>
-      Dimensionality reduction reveals structured clusters
-      separating robust configurations from unstable outliers.
+      Dimensionality reduction highlights structured regions of
+      stable parameter behavior and separates fragile configurations.
     </p>
     <div id="pcaCluster" style="height:520px;"></div>
   </section>
@@ -115,8 +52,8 @@
   <section class="mission">
     <h2>Alpha–Beta Stability Manifold</h2>
     <p>
-      Small, persistent statistical edge (alpha) evaluated
-      against factor sensitivity (beta) across regimes.
+      Relationship between small statistical edge (alpha),
+      factor sensitivity (beta), and long-term stability.
     </p>
     <div id="alphaBetaSurface" style="height:520px;"></div>
   </section>
@@ -125,141 +62,159 @@
     <p>© 2025 EQ — Enable Quant</p>
   </footer>
 
-  <script>
-    /* ================= COMMON SCENE SETTINGS ================= */
-    function sceneConfig(xTitle, yTitle, zTitle) {
-      return {
-        xaxis: {
-          title: { text: xTitle, font: { size: 12 }, standoff: 20 },
-          tickfont: { size: 10 },
-          nticks: 5,
-          gridcolor: "#1f2933"
-        },
-        yaxis: {
-          title: { text: yTitle, font: { size: 12 }, standoff: 20 },
-          tickfont: { size: 10 },
-          nticks: 5,
-          gridcolor: "#1f2933"
-        },
-        zaxis: {
-          title: { text: zTitle, font: { size: 12 }, standoff: 10 },
-          tickfont: { size: 10 },
-          nticks: 4,
-          gridcolor: "#1f2933"
-        },
-        camera: {
-          eye: { x: 1.4, y: 1.4, z: 0.9 }
-        }
-      };
+<script>
+/* ================= COMMON LAYOUT ================= */
+const baseLayout = {
+  paper_bgcolor: "#0b0f14",
+  plot_bgcolor: "#0b0f14",
+  margin: { l: 0, r: 0, b: 0, t: 0 }
+};
+
+function sceneConfig(xTitle, yTitle, zTitle) {
+  return {
+    xaxis: {
+      title: { text: xTitle, standoff: 20, font: { size: 12 } },
+      tickfont: { size: 10 },
+      nticks: 5
+    },
+    yaxis: {
+      title: { text: yTitle, standoff: 20, font: { size: 12 } },
+      tickfont: { size: 10 },
+      nticks: 5
+    },
+    zaxis: {
+      title: { text: zTitle, standoff: 10, font: { size: 12 } },
+      tickfont: { size: 10 },
+      nticks: 4
+    },
+    camera: {
+      eye: { x: 1.5, y: 1.4, z: 0.9 }
     }
+  };
+}
 
-    const baseLayout = {
-      paper_bgcolor: "#0b0f14",
-      plot_bgcolor: "#0b0f14",
-      margin: { l: 0, r: 0, b: 0, t: 0 }
-    };
+/* ================= ROBUSTNESS SURFACE (YOUR LOGIC) ================= */
 
-    /* ================= ROBUSTNESS SURFACE ================= */
-    const rX = [], rY = [], rZ = [];
-    for (let i = 0; i < 40; i++) {
-      rX.push(i * 0.25);
-      rY.push(i * 0.25);
-    }
+const windowRange = [];
+const zEntryRange = [];
+const stabilitySurface = [];
 
-    for (let i = 0; i < rX.length; i++) {
-      const row = [];
-      for (let j = 0; j < rY.length; j++) {
-        row.push(
-          Math.exp(-0.15 * rX[i]) *
-          Math.exp(-0.1 * rY[j]) +
-          Math.random() * 0.03
-        );
-      }
-      rZ.push(row);
-    }
+// Rolling window: 50 → 150
+for (let w = 50; w <= 150; w += 5) {
+  windowRange.push(w);
+}
 
-    Plotly.newPlot("robustnessSurface", [{
-      type: "surface",
-      x: rX,
-      y: rY,
-      z: rZ,
-      colorscale: "Viridis"
-    }], {
-      ...baseLayout,
-      scene: sceneConfig(
-        "Parameter Smoothness",
-        "Regime Variability",
-        "Robustness"
-      )
-    });
+// Entry Z-score: 3.5 → 4.5
+for (let z = 3.5; z <= 4.5; z += 0.05) {
+  zEntryRange.push(z);
+}
 
-    /* ================= PCA CLUSTER CLOUD ================= */
-    const N = 300;
-    const pcaX = [], pcaY = [], pcaZ = [], colors = [];
+// Stability manifold centered at (100, 4)
+for (let i = 0; i < windowRange.length; i++) {
+  const row = [];
+  for (let j = 0; j < zEntryRange.length; j++) {
+    const w = windowRange[i];
+    const z = zEntryRange[j];
 
-    for (let i = 0; i < N; i++) {
-      const cluster = i % 3;
-      pcaX.push(Math.random() + cluster * 1.5);
-      pcaY.push(Math.random() + cluster * 1.5);
-      pcaZ.push(Math.random());
-      colors.push(cluster);
-    }
+    const windowPenalty = Math.exp(-Math.pow((w - 100) / 35, 2));
+    const zPenalty = Math.exp(-Math.pow((z - 4) / 0.35, 2));
 
-    Plotly.newPlot("pcaCluster", [{
-      type: "scatter3d",
-      mode: "markers",
-      x: pcaX,
-      y: pcaY,
-      z: pcaZ,
-      marker: {
-        size: 4,
-        color: colors,
-        colorscale: "Plasma",
-        opacity: 0.85
-      }
-    }], {
-      ...baseLayout,
-      scene: sceneConfig(
-        "PCA Factor 1",
-        "PCA Factor 2",
-        "Stability"
-      )
-    });
+    let stability =
+      0.9 * windowPenalty * zPenalty +
+      0.1 * Math.random(); // market noise
 
-    /* ================= ALPHA BETA MANIFOLD ================= */
-    const alpha = [], beta = [], stability = [];
-    for (let i = 0; i < 35; i++) {
-      alpha.push(i * 0.05);
-      beta.push(i * 0.05);
-    }
+    stability = Math.max(0, Math.min(1, stability));
+    row.push(stability);
+  }
+  stabilitySurface.push(row);
+}
 
-    for (let i = 0; i < alpha.length; i++) {
-      const row = [];
-      for (let j = 0; j < beta.length; j++) {
-        row.push(
-          Math.exp(-alpha[i] * 0.8) *
-          Math.cos(beta[j]) + 0.05
-        );
-      }
-      stability.push(row);
-    }
+Plotly.newPlot("robustnessSurface", [{
+  type: "surface",
+  x: windowRange,
+  y: zEntryRange,
+  z: stabilitySurface,
+  colorscale: "Viridis",
+  showscale: false
+}], {
+  ...baseLayout,
+  scene: sceneConfig(
+    "Rolling Window Length",
+    "Entry Z-Score Threshold",
+    "Stability Score"
+  )
+});
 
-    Plotly.newPlot("alphaBetaSurface", [{
-      type: "surface",
-      x: alpha,
-      y: beta,
-      z: stability,
-      colorscale: "Cividis"
-    }], {
-      ...baseLayout,
-      scene: sceneConfig(
-        "Alpha (Statistical)",
-        "Beta (Factor Sensitivity)",
-        "Stability"
-      )
-    });
-  </script>
+/* ================= PCA CLUSTER VISUAL ================= */
+
+const N = 300;
+const pcaX = [], pcaY = [], pcaZ = [], colors = [];
+
+for (let i = 0; i < N; i++) {
+  const cluster = i % 3;
+  pcaX.push(Math.random() + cluster * 1.6);
+  pcaY.push(Math.random() + cluster * 1.6);
+  pcaZ.push(Math.random());
+  colors.push(cluster);
+}
+
+Plotly.newPlot("pcaCluster", [{
+  type: "scatter3d",
+  mode: "markers",
+  x: pcaX,
+  y: pcaY,
+  z: pcaZ,
+  marker: {
+    size: 4,
+    color: colors,
+    colorscale: "Plasma",
+    opacity: 0.85
+  }
+}], {
+  ...baseLayout,
+  scene: sceneConfig(
+    "PCA Factor 1",
+    "PCA Factor 2",
+    "Stability"
+  )
+});
+
+/* ================= ALPHA–BETA STABILITY ================= */
+
+const alpha = [], beta = [], stability = [];
+
+for (let i = 0; i <= 30; i++) {
+  alpha.push(i * 0.05);
+  beta.push(i * 0.05);
+}
+
+for (let i = 0; i < alpha.length; i++) {
+  const row = [];
+  for (let j = 0; j < beta.length; j++) {
+    row.push(
+      Math.exp(-alpha[i] * 0.8) *
+      Math.cos(beta[j]) + 0.05
+    );
+  }
+  stability.push(row);
+}
+
+Plotly.newPlot("alphaBetaSurface", [{
+  type: "surface",
+  x: alpha,
+  y: beta,
+  z: stability,
+  colorscale: "Cividis",
+  showscale: false
+}], {
+  ...baseLayout,
+  scene: sceneConfig(
+    "Alpha (Statistical)",
+    "Beta (Factor Sensitivity)",
+    "Stability"
+  )
+});
+</script>
+
 </body>
 </html>
-
-
