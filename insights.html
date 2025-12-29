@@ -46,7 +46,8 @@
   Color = Stress Test Survival. Peaks correspond to parameters consistently surviving all stages.
 </p>
 
-<div id="pcaCluster"></div>
+<div id="parameterCloud" style="height:600px;"></div>
+
 </section>
 
   <!-- ================= ALPHA BETA SURFACE ================= -->
@@ -147,124 +148,86 @@ Plotly.newPlot("robustnessSurface", [{
 });
 
 
-/* ================= 3-AXIS PIPELINE CONE INTERSECTION ================= */
+/* ================= PARAMETER SURVIVAL CLOUD ================= */
 
-const N = 60;
-const axis = [];
+// Grid resolution (higher = heavier compute, looks cooler)
+const N = 28;
+
+// Axes represent abstract robustness dimensions
+const x = [];
+const y = [];
+const z = [];
+const value = [];
+
 for (let i = 0; i < N; i++) {
-  axis.push(i / (N - 1));
-}
-
-function clamp(v) {
-  return Math.max(0, Math.min(1, v));
-}
-
-/* ================= TRAINING CONE (BASE ON X-AXIS) ================= */
-/* Wide base → many params look good in training */
-const trainZ = [];
-for (let i = 0; i < N; i++) {
-  const row = [];
   for (let j = 0; j < N; j++) {
-    const x = axis[i];
-    const y = axis[j];
+    for (let k = 0; k < N; k++) {
 
-    const cone =
-      Math.exp(-Math.pow((y - 0.5) / 0.35, 2)) *
-      Math.exp(-Math.pow((x - 0.85) / 0.25, 2));
+      const X = i / (N - 1);
+      const Y = j / (N - 1);
+      const Z = k / (N - 1);
 
-    row.push(clamp(cone + 0.04 * Math.random()));
+      /*
+        X → Training consistency
+        Y → Temporal robustness (backward + forward)
+        Z → Structural resilience (stress & sensitivity)
+      */
+
+      // Broad initial parameter space
+      let density =
+        Math.exp(-Math.pow((X - 0.6) / 0.35, 2)) *
+        Math.exp(-Math.pow((Y - 0.5) / 0.25, 2)) *
+        Math.exp(-Math.pow((Z - 0.55) / 0.25, 2));
+
+      // Forward-test fracture
+      density *= Math.exp(-Math.pow((Y - 0.75) / 0.18, 2));
+
+      // Stress-test erosion
+      density *= Math.exp(-Math.pow((Z - 0.8) / 0.15, 2));
+
+      // Ruggedness / non-stationarity
+      density += 0.04 * Math.random();
+
+      x.push(X);
+      y.push(Y);
+      z.push(Z);
+      value.push(Math.max(0, density));
+    }
   }
-  trainZ.push(row);
 }
 
-/* ================= BACKWARD CONE (BASE ON Y-AXIS) ================= */
-/* Medium width → backward kills many params */
-const backwardX = [];
-for (let i = 0; i < N; i++) {
-  const row = [];
-  for (let j = 0; j < N; j++) {
-    const y = axis[i];
-    const z = axis[j];
+Plotly.newPlot("parameterCloud", [{
+  type: "volume",
+  x: x,
+  y: y,
+  z: z,
+  value: value,
 
-    const cone =
-      Math.exp(-Math.pow((z - 0.45) / 0.25, 2)) *
-      Math.exp(-Math.pow((y - 0.5) / 0.18, 2));
+  isomin: 0.15,
+  isomax: 0.95,
 
-    row.push(clamp(cone + 0.04 * Math.random()));
-  }
-  backwardX.push(row);
-}
-
-/* ================= FORWARD CONE (BASE ON Z-AXIS) ================= */
-/* Narrowest → only consistent params survive */
-const forwardY = [];
-for (let i = 0; i < N; i++) {
-  const row = [];
-  for (let j = 0; j < N; j++) {
-    const x = axis[i];
-    const z = axis[j];
-
-    const cone =
-      Math.exp(-Math.pow((x - 0.45) / 0.15, 2)) *
-      Math.exp(-Math.pow((z - 0.85) / 0.12, 2));
-
-    row.push(clamp(cone + 0.04 * Math.random()));
-  }
-  forwardY.push(row);
-}
-
-/* ================= PLOT ================= */
-
-Plotly.newPlot("pcaCluster", [
-  {
-    type: "surface",
-    x: axis,
-    y: axis,
-    z: trainZ,
-    colorscale: "Viridis",
-    opacity: 0.85,
-    name: "Training Robustness",
-    showscale: false
-  },
-  {
-    type: "surface",
-    x: backwardX,
-    y: axis,
-    z: axis,
-    colorscale: "Cividis",
-    opacity: 0.75,
-    name: "Backward Robustness",
-    showscale: false
-  },
-  {
-    type: "surface",
-    x: axis,
-    y: forwardY,
-    z: axis,
-    colorscale: "Plasma",
-    opacity: 0.65,
-    name: "Forward Robustness",
-    showscale: false
-  }
-], {
+  opacity: 0.12,      // cloud-like
+  surface: { count: 18 },
+  colorscale: "Viridis"
+}], {
   paper_bgcolor: "#0b0f14",
   plot_bgcolor: "#0b0f14",
   margin: { l: 0, r: 0, b: 0, t: 0 },
   scene: {
     xaxis: {
-      title: "Training Profit Strength",
+      title: "Training Consistency",
       range: [0, 1]
     },
     yaxis: {
-      title: "Backward Retention",
+      title: "Temporal Robustness",
       range: [0, 1]
     },
     zaxis: {
-      title: "Forward Retention",
+      title: "Structural Resilience",
       range: [0, 1]
     },
     camera: {
-      eye: { x: 1.6, y: 1.4, z: 1.0 }
+      eye: { x: 1.6, y: 1.5, z: 1.2 }
     }
   }
 });
