@@ -147,36 +147,82 @@ Plotly.newPlot("robustnessSurface", [{
 
 /* ================= PCA CLUSTER VISUAL ================= */
 
-const N = 300;
-const pcaX = [], pcaY = [], pcaZ = [], colors = [];
+const N = 360;
+
+// PCA-style latent factors
+const pcRetention = [];   // backward + forward retention
+const pcSensitivity = []; // ±25% parameter elasticity
+const pcStability = [];   // rolling consistency
+const clusterColor = [];
 
 for (let i = 0; i < N; i++) {
-  const cluster = i % 3;
-  pcaX.push(Math.random() + cluster * 1.6);
-  pcaY.push(Math.random() + cluster * 1.6);
-  pcaZ.push(Math.random());
-  colors.push(cluster);
+
+  // Simulate three dominant robustness regimes
+  const regime = i % 3;
+
+  let retention, sensitivity, stability;
+
+  if (regime === 0) {
+    // Robust core (passes all filters)
+    retention   = 0.85 + Math.random() * 0.1;
+    sensitivity = 0.15 + Math.random() * 0.1;
+    stability   = 0.8  + Math.random() * 0.15;
+  } else if (regime === 1) {
+    // Marginal but acceptable
+    retention   = 0.6  + Math.random() * 0.15;
+    sensitivity = 0.35 + Math.random() * 0.2;
+    stability   = 0.55 + Math.random() * 0.2;
+  } else {
+    // Fragile / overfit
+    retention   = 0.3  + Math.random() * 0.2;
+    sensitivity = 0.65 + Math.random() * 0.25;
+    stability   = 0.3  + Math.random() * 0.2;
+  }
+
+  // PCA-style projection (decorrelation)
+  pcRetention.push(retention + 0.15 * Math.random());
+  pcSensitivity.push(sensitivity + 0.15 * Math.random());
+  pcStability.push(stability);
+
+  clusterColor.push(regime);
 }
 
 Plotly.newPlot("pcaCluster", [{
   type: "scatter3d",
   mode: "markers",
-  x: pcaX,
-  y: pcaY,
-  z: pcaZ,
+  x: pcRetention,
+  y: pcSensitivity,
+  z: pcStability,
   marker: {
-    size: 4,
-    color: colors,
+    size: 4.5,
+    color: clusterColor,
     colorscale: "Plasma",
-    opacity: 0.85
+    opacity: 0.9
   }
 }], {
-  ...baseLayout,
-  scene: sceneConfig(
-    "PCA Factor 1",
-    "PCA Factor 2",
-    "Stability"
-  )
+  paper_bgcolor: "#0b0f14",
+  plot_bgcolor: "#0b0f14",
+  margin: { l: 0, r: 0, b: 0, t: 0 },
+  scene: {
+    xaxis: {
+      title: "Regime Retention (Backward & Forward)",
+      range: [0, 1],
+      tickfont: { size: 10 }
+    },
+    yaxis: {
+      title: "Parameter Sensitivity (±25%)",
+      range: [0, 1],
+      tickfont: { size: 10 }
+    },
+    zaxis: {
+      title: "Structural Stability",
+      range: [0, 1],
+      tickfont: { size: 10 }
+    },
+    camera: {
+      eye: { x: 1.6, y: 1.4, z: 0.9 }
+    }
+  }
 });
 
 /* ================= ALPHA–BETA STABILITY ================= */
