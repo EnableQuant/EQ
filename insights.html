@@ -146,80 +146,82 @@ Plotly.newPlot("robustnessSurface", [{
 });
 
 
-/* ================= PCA ROBUSTNESS MANIFOLD ================= */
+/* ================= ISO-RIDGE ROBUSTNESS MANIFOLD ================= */
 
-const retentionAxis = [];
-const sensitivityAxis = [];
-const frames = [];
+const x = []; // retention
+const y = []; // sensitivity
+const z = []; // stability
+const values = [];
 
-// Axes
-for (let r = 0.4; r <= 1.0; r += 0.02) retentionAxis.push(r);
-for (let s = 0.0; s <= 0.8; s += 0.02) sensitivityAxis.push(s);
+// 3D grid
+for (let i = 0; i < 25; i++) {
+  for (let j = 0; j < 25; j++) {
+    for (let k = 0; k < 25; k++) {
 
-// Generate time-regime frames
-for (let t = 0; t < 6; t++) {
-  const zSurface = [];
+      const retention = 0.5 + i * 0.02;      // 0.5 → 1.0
+      const sensitivity = j * 0.04;           // 0 → 1
+      const stability = k * 0.04;              // 0 → 1
 
-  for (let i = 0; i < retentionAxis.length; i++) {
-    const row = [];
-    for (let j = 0; j < sensitivityAxis.length; j++) {
+      // Core robustness condition (your logic)
+      const retentionScore = Math.exp(-Math.pow((retention - 0.85) / 0.12, 2));
+      const sensitivityScore = Math.exp(-Math.pow((sensitivity - 0.2) / 0.18, 2));
+      const stabilityScore = Math.exp(-Math.pow((stability - 0.8) / 0.15, 2));
 
-      const r = retentionAxis[i];
-      const s = sensitivityAxis[j];
+      const robustness =
+        retentionScore *
+        sensitivityScore *
+        stabilityScore;
 
-      const core =
-        Math.exp(-Math.pow((r - 0.85) / 0.15, 2)) *
-        Math.exp(-Math.pow((s - 0.2 - t * 0.03) / 0.15, 2));
-
-      row.push(Math.max(0, Math.min(1, core)));
+      x.push(retention);
+      y.push(sensitivity);
+      z.push(stability);
+      values.push(robustness);
     }
-    zSurface.push(row);
   }
-
-  frames.push({
-    name: `regime_${t}`,
-    data: [{
-      z: zSurface
-    }]
-  });
 }
 
-/* ========== BASE SURFACE ========== */
-
 Plotly.newPlot("pcaCluster", [{
-  type: "surface",
-  x: retentionAxis,
-  y: sensitivityAxis,
-  z: frames[0].data[0].z,
+  type: "isosurface",
+  x: x,
+  y: y,
+  z: z,
+  value: values,
+
+  isomin: 0.35,
+  isomax: 0.9,
+  surface: { count: 3 },
+
+  caps: {
+    x: { show: false },
+    y: { show: false },
+    z: { show: false }
+  },
+
   colorscale: "Plasma",
-  showscale: false
+  opacity: 0.6
 }], {
   paper_bgcolor: "#0b0f14",
   plot_bgcolor: "#0b0f14",
   margin: { l: 0, r: 0, b: 0, t: 0 },
+
   scene: {
-    xaxis: { title: "Regime Retention (Train → Forward)" },
-    yaxis: { title: "Parameter Sensitivity (±25%)" },
-    zaxis: { title: "Structural Stability" },
-    camera: { eye: { x: 1.6, y: 1.4, z: 0.9 } }
-  },
-  updatemenus: [{
-    type: "buttons",
-    showactive: false,
-    buttons: [{
-      label: "Animate Regimes",
-      method: "animate",
-      args: [null, {
-        frame: { duration: 800, redraw: true },
-        transition: { duration: 500 }
-      }]
-    }]
-  }]
+    xaxis: {
+      title: "Regime Retention (Train → Forward)",
+      range: [0.5, 1.0]
+    },
+    yaxis: {
+      title: "Parameter Sensitivity (±25%)",
+      range: [0, 1]
+    },
+    zaxis: {
+      title: "Structural Stability",
+      range: [0, 1]
+    },
+    camera: {
+      eye: { x: 1.6, y: 1.3, z: 0.9 }
+    }
+  }
 });
-
-/* ========== ADD FRAMES (AFTER newPlot) ========== */
-Plotly.addFrames("pcaCluster", frames);
-
 
 /* ================= ALPHA–BETA STABILITY ================= */
 
