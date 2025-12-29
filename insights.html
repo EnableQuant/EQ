@@ -147,89 +147,116 @@ Plotly.newPlot("robustnessSurface", [{
 });
 
 
-// ================= AXES =================
-const gridSize = 50;
-const xTrain = [], yBackward = [], zForward = [];
-for(let i=0;i<gridSize;i++){
-  xTrain.push(i/(gridSize-1));
-  yBackward.push(i/(gridSize-1));
-  zForward.push(i/(gridSize-1));
+/* ================= 3-CONE PIPELINE ROBUSTNESS MANIFOLD ================= */
+
+const grid = 60;
+const axis = [];
+for (let i = 0; i < grid; i++) {
+  axis.push(i / (grid - 1));
 }
 
-// ================= PLANE 1: Training → Stability =================
-const plane1 = [];
-for(let i=0;i<gridSize;i++){
-  const row = [];
-  for(let j=0;j<gridSize;j++){
-    const x = xTrain[i];
-    const y = yBackward[j];
-    let val = Math.exp(-Math.pow((x-0.45)/0.1,2)) + 0.03*Math.random();
-    val = Math.max(0,Math.min(1,val));
-    row.push(val);
+// Helper: rugged cone generator
+function ruggedCone(cx, cy, sharpness, noise = 0.05) {
+  const surface = [];
+  for (let i = 0; i < grid; i++) {
+    const row = [];
+    for (let j = 0; j < grid; j++) {
+      const x = axis[i];
+      const y = axis[j];
+
+      const cone =
+        Math.exp(-Math.pow((x - cx) / sharpness, 2)) *
+        Math.exp(-Math.pow((y - cy) / sharpness, 2));
+
+      const rugged =
+        cone +
+        noise * (Math.random() - 0.5) +
+        0.03 * Math.sin(10 * x) * Math.cos(10 * y);
+
+      row.push(Math.max(0, Math.min(1, rugged)));
+    }
+    surface.push(row);
   }
-  plane1.push(row);
+  return surface;
 }
 
-// ================= PLANE 2: Backward → Stability =================
-const plane2 = [];
-for(let i=0;i<gridSize;i++){
-  const row = [];
-  for(let j=0;j<gridSize;j++){
-    const x = xTrain[i];
-    const y = yBackward[j];
-    let val = Math.exp(-Math.pow((y-0.8)/0.1,2)) + 0.03*Math.random();
-    val = Math.max(0,Math.min(1,val));
-    row.push(val);
-  }
-  plane2.push(row);
-}
+/* --------- Cone 1: Training Dominance --------- */
+const trainingCone = ruggedCone(
+  0.75,   // strong training profit
+  0.5,
+  0.28
+);
 
-// ================= PLANE 3: Forward → Stability =================
-const plane3 = [];
-for(let i=0;i<gridSize;i++){
-  const row = [];
-  for(let j=0;j<gridSize;j++){
-    const x = xTrain[i];
-    const z = zForward[j];
-    let val = Math.exp(-Math.pow((z-0.85)/0.1,2)) + 0.03*Math.random();
-    val = Math.max(0,Math.min(1,val));
-    row.push(val);
-  }
-  plane3.push(row);
-}
+/* --------- Cone 2: Backward Survivability --------- */
+const backwardCone = ruggedCone(
+  0.5,
+  0.45,   // ~40–50% backward retention
+  0.18
+);
 
-// ================= PLOTLY =================
-Plotly.newPlot("threePlanes", [
+/* --------- Cone 3: Forward Robustness --------- */
+const forwardCone = ruggedCone(
+  0.45,
+  0.85,   // ~80–90% forward retention
+  0.12
+);
+
+/* ================= PLOT ================= */
+
+Plotly.newPlot("pcaCluster", [
   {
-    type:"surface",
-    x:xTrain, y:yBackward, z:plane1,
-    colorscale:"Viridis",
-    opacity:0.8,
-    name:"Training"
+    type: "surface",
+    x: axis,
+    y: axis,
+    z: trainingCone,
+    colorscale: "Viridis",
+    opacity: 0.85,
+    name: "Training Robustness",
+    showscale: false
   },
   {
-    type:"surface",
-    x:xTrain, y:yBackward, z:plane2,
-    colorscale:"Cividis",
-    opacity:0.7,
-    name:"Backward"
+    type: "surface",
+    x: axis,
+    y: axis,
+    z: backwardCone,
+    colorscale: "Cividis",
+    opacity: 0.75,
+    name: "Backward Robustness",
+    showscale: false
   },
   {
-    type:"surface",
-    x:xTrain, y:yBackward, z:plane3,
-    colorscale:"Plasma",
-    opacity:0.6,
-    name:"Forward"
+    type: "surface",
+    x: axis,
+    y: axis,
+    z: forwardCone,
+    colorscale: "Plasma",
+    opacity: 0.65,
+    name: "Forward Robustness",
+    showscale: false
   }
-],{
-  paper_bgcolor:"#0b0f14",
-  plot_bgcolor:"#0b0f14",
-  margin:{l:0,r:0,b:0,t:0},
-  scene:{
-    xaxis:{title:"Training Profit", range:[0,1]},
-    yaxis:{title:"Backward Profit", range:[0,1]},
-    zaxis:{title:"Pipeline Stability", range:[0,1]},
-    camera:{eye:{x:1.7,y:1.7,z:0.9}}
+], {
+  paper_bgcolor: "#0b0f14",
+  plot_bgcolor: "#0b0f14",
+  margin: { l: 0, r: 0, b: 0, t: 0 },
+  scene: {
+    xaxis: {
+      title: "Training Profit Strength",
+      range: [0, 1],
+      tickfont: { size: 10 }
+    },
+    yaxis: {
+      title: "Backward & Forward Retention",
+      range: [0, 1],
+      tickfont: { size: 10 }
+    },
+    zaxis: {
+      title: "Parameter Stability Density",
+      range: [0, 1],
+      tickfont: { size: 10 }
+    },
+    camera: {
+      eye: { x: 1.6, y: 1.4, z: 0.9 }
+    }
   }
 });
 
