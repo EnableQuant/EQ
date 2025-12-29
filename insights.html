@@ -150,7 +150,7 @@ Plotly.newPlot("robustnessSurface", [{
 
 // ================= CONTINUOUS 3D SURFACE =================
 const gridSize = 50;  // number of points per axis
-const xTrain = [], yBackward = [], zForward = [], stability = [];
+const xTrain = [], yBackward = [], zForward = [], stabilitypipeline = [];
 
 // Axis ranges
 for(let i=0; i<gridSize; i++){
@@ -181,7 +181,7 @@ for(let i=0;i<gridSize;i++){
         s = Math.max(0,Math.min(1,s));
         row.push(s);
     }
-    stability.push(row);
+    stabilitypipeline.push(row);
 }
 
 // Plot surface
@@ -189,7 +189,7 @@ Plotly.newPlot("pipelineSurface", [{
     type: "surface",
     x: xTrain,
     y: yBackward,
-    z: stability,
+    z: stabilitypipeline,
     colorscale: "Viridis",
     showscale:true,
     contours:{z:{show:true, usecolormap:true}}
