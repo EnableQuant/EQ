@@ -90,3 +90,41 @@ footer {
   color: #7b8794;
   font-size: 14px;
 }
+/* ---------- Visual Depth & Atmosphere ---------- */
+
+body {
+  background: radial-gradient(
+    circle at top left,
+    #121826,
+    #0b0f14 60%
+  );
+}
+
+.hero h1 {
+  background: linear-gradient(90deg, #ffffff, #7dd3fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pillar {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pillar:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.mission {
+  border-left: 3px solid #38bdf8;
+  padding-left: 30px;
+}
+
+nav {
+  backdrop-filter: blur(10px);
+}
+
