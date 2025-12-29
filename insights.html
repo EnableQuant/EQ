@@ -148,7 +148,9 @@ Plotly.newPlot("robustnessSurface", [{
 });
 
 
-/* ================= PARAMETER SURVIVAL UNIVERSE ================= */
+
+
+/* ================= PARAMETER SURVIVAL UNIVERSE (WHITE BG) ================= */
 
 const N = 32;
 
@@ -165,13 +167,7 @@ for (let i = 0; i < N; i++) {
       const Y = j / (N - 1);
       const Z = k / (N - 1);
 
-      /*
-        X → Training consistency
-        Y → Temporal robustness
-        Z → Structural resilience
-      */
-
-      // Multiple robustness attractors (clusters)
+      // Three robustness attractors
       const core1 =
         Math.exp(-Math.pow((X - 0.55) / 0.22, 2)) *
         Math.exp(-Math.pow((Y - 0.65) / 0.20, 2)) *
@@ -187,16 +183,14 @@ for (let i = 0; i < N; i++) {
         Math.exp(-Math.pow((Y - 0.35) / 0.22, 2)) *
         Math.exp(-Math.pow((Z - 0.45) / 0.20, 2));
 
-      // Combine clusters
       let density = 1.2 * core1 + 0.8 * core2 + 0.6 * core3;
 
-      // Non-stationarity / ruggedness
+      // Rugged non-stationarity
       density +=
         0.08 * Math.sin(10 * X) * Math.cos(10 * Y) +
         0.06 * Math.sin(8 * Z);
 
-      // Noise floor
-      density += 0.05 * Math.random();
+      density += 0.04 * Math.random();
 
       x.push(X);
       y.push(Y);
@@ -213,39 +207,48 @@ Plotly.newPlot("parameterCloud", [{
   z: z,
   value: value,
 
-  isomin: 0.12,
-  isomax: 1.2,
+  isomin: 0.10,
+  isomax: 1.15,
 
-  opacity: 0.22,          // MUCH stronger
-  surface: { count: 28 }, // Dense layers
+  opacity: 0.28,
+  surface: { count: 32 },
 
   colorscale: [
-    [0.0, "#0b0f14"],
-    [0.2, "#1f3b4d"],
-    [0.4, "#3b6ea5"],
-    [0.6, "#6a5acd"],
-    [0.8, "#00f5ff"],
-    [1.0, "#ffffff"]
+    [0.0, "#ffffff"],
+    [0.15, "#c7d2fe"],
+    [0.35, "#93c5fd"],
+    [0.55, "#60a5fa"],
+    [0.75, "#2563eb"],
+    [1.0, "#0f172a"]
   ]
 }], {
-  paper_bgcolor: "#0b0f14",
-  plot_bgcolor: "#0b0f14",
+  paper_bgcolor: "#ffffff",
+  plot_bgcolor: "#ffffff",
   margin: { l: 0, r: 0, b: 0, t: 0 },
   scene: {
     xaxis: {
       title: "Training Consistency",
+      backgroundcolor: "#ffffff",
+      gridcolor: "#e5e7eb",
+      zerolinecolor: "#e5e7eb",
       range: [0, 1]
     },
     yaxis: {
       title: "Temporal Robustness",
+      backgroundcolor: "#ffffff",
+      gridcolor: "#e5e7eb",
+      zerolinecolor: "#e5e7eb",
       range: [0, 1]
     },
     zaxis: {
       title: "Structural Resilience",
+      backgroundcolor: "#ffffff",
+      gridcolor: "#e5e7eb",
+      zerolinecolor: "#e5e7eb",
       range: [0, 1]
     },
     camera: {
-      eye: { x: 1.8, y: 1.6, z: 1.4 }
+      eye: { x: 1.7, y: 1.5, z: 1.3 }
     }
   }
 });
