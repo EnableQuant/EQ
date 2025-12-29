@@ -46,7 +46,8 @@
   Color = Stress Test Survival. Peaks correspond to parameters consistently surviving all stages.
 </p>
 
-<div id="parameterCloud" style="height:600px;"></div>
+<div id="robustnessAttractors" style="height:600px;"></div>
+
 
 </section>
 
@@ -150,101 +151,77 @@ Plotly.newPlot("robustnessSurface", [{
 
 
 
-/* ================= PARAMETER SURVIVAL UNIVERSE (RAINBOW CLOUD) ================= */
+/* ================= MULTI-STAGE ROBUSTNESS ATTRACTOR FIELD ================= */
 
-const N = 34;
+// Grid resolution
+const gridSize = 45;
+const axis = [];
+for (let i = -1; i <= 1; i += 2 / gridSize) axis.push(i);
 
-const x = [];
-const y = [];
-const z = [];
-const value = [];
+// 3D density field
+const density = [];
 
-for (let i = 0; i < N; i++) {
-  for (let j = 0; j < N; j++) {
-    for (let k = 0; k < N; k++) {
+for (let xi = 0; xi < axis.length; xi++) {
+  const row = [];
+  for (let yi = 0; yi < axis.length; yi++) {
+    const col = [];
+    for (let zi = 0; zi < axis.length; zi++) {
 
-      const X = i / (N - 1);
-      const Y = j / (N - 1);
-      const Z = k / (N - 1);
+      const x = axis[xi];
+      const y = axis[yi];
+      const z = axis[zi];
 
-      // Three robustness attractors (training → backward → forward)
-      const coreTraining =
-        Math.exp(-Math.pow((X - 0.55) / 0.22, 2)) *
-        Math.exp(-Math.pow((Y - 0.65) / 0.20, 2)) *
-        Math.exp(-Math.pow((Z - 0.75) / 0.18, 2));
+      // -------- Core 1: Training (wide, noisy)
+      const d1 =
+        Math.exp(-(x*x + y*y + z*z) / 0.9) *
+        (0.8 + 0.2 * Math.random());
 
-      const coreBackward =
-        Math.exp(-Math.pow((X - 0.35) / 0.30, 2)) *
-        Math.exp(-Math.pow((Y - 0.45) / 0.25, 2)) *
-        Math.exp(-Math.pow((Z - 0.55) / 0.30, 2));
+      // -------- Core 2: Backward validation (medium)
+      const d2 =
+        Math.exp(-(
+          Math.pow(x - 0.4, 2) +
+          Math.pow(y + 0.3, 2) +
+          Math.pow(z - 0.2, 2)
+        ) / 0.35);
 
-      const coreForward =
-        Math.exp(-Math.pow((X - 0.75) / 0.18, 2)) *
-        Math.exp(-Math.pow((Y - 0.35) / 0.22, 2)) *
-        Math.exp(-Math.pow((Z - 0.45) / 0.20, 2));
+      // -------- Core 3: Forward + Stress (tight, sharp)
+      const d3 =
+        Math.exp(-(
+          Math.pow(x + 0.25, 2) +
+          Math.pow(y - 0.4, 2) +
+          Math.pow(z + 0.35, 2)
+        ) / 0.12);
 
-      let density =
-        1.2 * coreTraining +
-        0.9 * coreBackward +
-        0.7 * coreForward;
-
-      // Ruggedness = non-stationarity + stress
-      density +=
-        0.08 * Math.sin(10 * X) * Math.cos(10 * Y) +
-        0.06 * Math.sin(8 * Z);
-
-      density += 0.05 * Math.random();
-
-      x.push(X);
-      y.push(Y);
-      z.push(Z);
-      value.push(Math.max(0, density));
+      // Combined robustness
+      col.push(d1 + d2 + d3);
     }
+    row.push(col);
   }
+  density.push(row);
 }
 
-Plotly.newPlot("parameterCloud", [{
+// Volume rendering
+Plotly.newPlot("robustnessAttractors", [{
   type: "volume",
-  x: x,
-  y: y,
-  z: z,
-  value: value,
-
-  isomin: 0.2,
-  isomax: 1.25,
-
-  opacity: 0.32,
-  surface: { count: 36 },
-
-  colorscale: "Jet"
+  x: axis,
+  y: axis,
+  z: axis,
+  value: density.flat(2),
+  isomin: 0.15,
+  isomax: 1.4,
+  opacity: 0.12,
+  surface: { count: 18 },
+  colorscale: "Rainbow"
 }], {
   paper_bgcolor: "#ffffff",
   plot_bgcolor: "#ffffff",
-  margin: { l: 0, r: 0, b: 0, t: 0 },
+  margin: { l: 0, r: 0, t: 0, b: 0 },
   scene: {
-    xaxis: {
-      title: "Training Profit Consistency",
-      backgroundcolor: "#ffffff",
-      gridcolor: "#e5e7eb",
-      zerolinecolor: "#e5e7eb",
-      range: [0, 1]
-    },
-    yaxis: {
-      title: "Backward Robustness",
-      backgroundcolor: "#ffffff",
-      gridcolor: "#e5e7eb",
-      zerolinecolor: "#e5e7eb",
-      range: [0, 1]
-    },
-    zaxis: {
-      title: "Forward + Stress Survival",
-      backgroundcolor: "#ffffff",
-      gridcolor: "#e5e7eb",
-      zerolinecolor: "#e5e7eb",
-      range: [0, 1]
-    },
+    xaxis: { title: "Training Profit Landscape", range: [-1,1] },
+    yaxis: { title: "Backward Validation Retention", range: [-1,1] },
+    zaxis: { title: "Forward & Stress Robustness", range: [-1,1] },
     camera: {
-      eye: { x: 1.7, y: 1.5, z: 1.3 }
+      eye: { x: 1.6, y: 1.4, z: 1.2 }
     }
   }
 });
