@@ -147,59 +147,71 @@ Plotly.newPlot("robustnessSurface", [{
 });
 
 
-/* ================= 3-CONE PIPELINE ROBUSTNESS MANIFOLD ================= */
+/* ================= 3-AXIS PIPELINE CONE INTERSECTION ================= */
 
-const grid = 60;
+const N = 60;
 const axis = [];
-for (let i = 0; i < grid; i++) {
-  axis.push(i / (grid - 1));
+for (let i = 0; i < N; i++) {
+  axis.push(i / (N - 1));
 }
 
-// Helper: rugged cone generator
-function ruggedCone(cx, cy, sharpness, noise = 0.05) {
-  const surface = [];
-  for (let i = 0; i < grid; i++) {
-    const row = [];
-    for (let j = 0; j < grid; j++) {
-      const x = axis[i];
-      const y = axis[j];
+function clamp(v) {
+  return Math.max(0, Math.min(1, v));
+}
 
-      const cone =
-        Math.exp(-Math.pow((x - cx) / sharpness, 2)) *
-        Math.exp(-Math.pow((y - cy) / sharpness, 2));
+/* ================= TRAINING CONE (BASE ON X-AXIS) ================= */
+/* Wide base → many params look good in training */
+const trainZ = [];
+for (let i = 0; i < N; i++) {
+  const row = [];
+  for (let j = 0; j < N; j++) {
+    const x = axis[i];
+    const y = axis[j];
 
-      const rugged =
-        cone +
-        noise * (Math.random() - 0.5) +
-        0.03 * Math.sin(10 * x) * Math.cos(10 * y);
+    const cone =
+      Math.exp(-Math.pow((y - 0.5) / 0.35, 2)) *
+      Math.exp(-Math.pow((x - 0.85) / 0.25, 2));
 
-      row.push(Math.max(0, Math.min(1, rugged)));
-    }
-    surface.push(row);
+    row.push(clamp(cone + 0.04 * Math.random()));
   }
-  return surface;
+  trainZ.push(row);
 }
 
-/* --------- Cone 1: Training Dominance --------- */
-const trainingCone = ruggedCone(
-  0.75,   // strong training profit
-  0.5,
-  0.28
-);
+/* ================= BACKWARD CONE (BASE ON Y-AXIS) ================= */
+/* Medium width → backward kills many params */
+const backwardX = [];
+for (let i = 0; i < N; i++) {
+  const row = [];
+  for (let j = 0; j < N; j++) {
+    const y = axis[i];
+    const z = axis[j];
 
-/* --------- Cone 2: Backward Survivability --------- */
-const backwardCone = ruggedCone(
-  0.5,
-  0.45,   // ~40–50% backward retention
-  0.18
-);
+    const cone =
+      Math.exp(-Math.pow((z - 0.45) / 0.25, 2)) *
+      Math.exp(-Math.pow((y - 0.5) / 0.18, 2));
 
-/* --------- Cone 3: Forward Robustness --------- */
-const forwardCone = ruggedCone(
-  0.45,
-  0.85,   // ~80–90% forward retention
-  0.12
-);
+    row.push(clamp(cone + 0.04 * Math.random()));
+  }
+  backwardX.push(row);
+}
+
+/* ================= FORWARD CONE (BASE ON Z-AXIS) ================= */
+/* Narrowest → only consistent params survive */
+const forwardY = [];
+for (let i = 0; i < N; i++) {
+  const row = [];
+  for (let j = 0; j < N; j++) {
+    const x = axis[i];
+    const z = axis[j];
+
+    const cone =
+      Math.exp(-Math.pow((x - 0.45) / 0.15, 2)) *
+      Math.exp(-Math.pow((z - 0.85) / 0.12, 2));
+
+    row.push(clamp(cone + 0.04 * Math.random()));
+  }
+  forwardY.push(row);
+}
 
 /* ================= PLOT ================= */
 
@@ -208,7 +220,7 @@ Plotly.newPlot("pcaCluster", [
     type: "surface",
     x: axis,
     y: axis,
-    z: trainingCone,
+    z: trainZ,
     colorscale: "Viridis",
     opacity: 0.85,
     name: "Training Robustness",
@@ -216,9 +228,9 @@ Plotly.newPlot("pcaCluster", [
   },
   {
     type: "surface",
-    x: axis,
+    x: backwardX,
     y: axis,
-    z: backwardCone,
+    z: axis,
     colorscale: "Cividis",
     opacity: 0.75,
     name: "Backward Robustness",
@@ -227,8 +239,8 @@ Plotly.newPlot("pcaCluster", [
   {
     type: "surface",
     x: axis,
-    y: axis,
-    z: forwardCone,
+    y: forwardY,
+    z: axis,
     colorscale: "Plasma",
     opacity: 0.65,
     name: "Forward Robustness",
@@ -241,25 +253,21 @@ Plotly.newPlot("pcaCluster", [
   scene: {
     xaxis: {
       title: "Training Profit Strength",
-      range: [0, 1],
-      tickfont: { size: 10 }
+      range: [0, 1]
     },
     yaxis: {
-      title: "Backward & Forward Retention",
-      range: [0, 1],
-      tickfont: { size: 10 }
+      title: "Backward Retention",
+      range: [0, 1]
     },
     zaxis: {
-      title: "Parameter Stability Density",
-      range: [0, 1],
-      tickfont: { size: 10 }
+      title: "Forward Retention",
+      range: [0, 1]
     },
     camera: {
-      eye: { x: 1.6, y: 1.4, z: 0.9 }
+      eye: { x: 1.6, y: 1.4, z: 1.0 }
     }
   }
 });
-
 /* ================= ALPHA–BETA STABILITY ================= */
 
 const alpha = [], beta = [], stability = [];
