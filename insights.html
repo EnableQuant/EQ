@@ -150,64 +150,60 @@ Plotly.newPlot("robustnessSurface", [{
 
 
 
-/* ================= MULTI-CORE PARAMETER SURVIVORSHIP ================= */
+/* ================= MULTI-CORE PARAMETER SURVIVORSHIP (PIPELINE) ================= */
 
-const steps = 34;
+const grid = 36;
 const xs = [], ys = [], zs = [];
 const train = [], back = [], forward = [], stress = [];
 
-// Six final deployable cores
-const stressCenters = [
-  [ 0.55,  0.55,  0.55],
-  [-0.55,  0.55,  0.55],
-  [ 0.55, -0.55,  0.55],
-  [ 0.55,  0.55, -0.55],
-  [-0.55, -0.55,  0.55],
-  [-0.55,  0.55, -0.55]
+/*
+ Six independent robust cores:
+ represent final surviving params (5–10 out of 100k)
+*/
+const cores = [
+  [ 0.75,  0.65,  0.60],
+  [-0.70,  0.70,  0.55],
+  [ 0.60, -0.75,  0.65],
+  [-0.65, -0.60,  0.70],
+  [ 0.55,  0.55, -0.75],
+  [-0.75,  0.45, -0.55]
 ];
 
-for (let i = 0; i < steps; i++) {
-  for (let j = 0; j < steps; j++) {
-    for (let k = 0; k < steps; k++) {
+for (let i = 0; i < grid; i++) {
+  for (let j = 0; j < grid; j++) {
+    for (let k = 0; k < grid; k++) {
 
-      const x = -1.3 + (2.6 * i) / (steps - 1);
-      const y = -1.3 + (2.6 * j) / (steps - 1);
-      const z = -1.3 + (2.6 * k) / (steps - 1);
+      const x = -1.4 + (2.8 * i) / (grid - 1);
+      const y = -1.4 + (2.8 * j) / (grid - 1);
+      const z = -1.4 + (2.8 * k) / (grid - 1);
 
-      // --- Training: fills cube
-      const dTrain =
-        Math.exp(-(x*x + y*y + z*z) / 2.6);
+      // --- TRAINING (100k params, fills entire cube)
+      const dTrain = Math.exp(-(x*x + y*y + z*z) / 3.2);
 
-      // --- Backward: broad enclosure
-      const dBack =
-        Math.exp(-(
-          Math.pow(x, 2) +
-          Math.pow(y, 2) +
-          Math.pow(z, 2)
-        ) / 0.9);
+      // --- BACKWARD (top ~10–20% survive)
+      const dBack = Math.exp(-(x*x + y*y + z*z) / 1.4);
 
-      // --- Forward: enclosure around future stress cores
+      // --- FORWARD (only clusters near future-stable regimes)
       let dForward = 0;
-      for (const c of stressCenters) {
+      for (const c of cores) {
         dForward += Math.exp(-(
           Math.pow(x - c[0], 2) +
           Math.pow(y - c[1], 2) +
           Math.pow(z - c[2], 2)
-        ) / 0.35);
+        ) / 0.45);
       }
 
-      // --- Stress: ultra-tight nuclei
+      // --- STRESS TEST (±10–25% sensitivity → ultra-tight)
       let dStress = 0;
-      for (const c of stressCenters) {
+      for (const c of cores) {
         dStress += Math.exp(-(
           Math.pow(x - c[0], 2) +
           Math.pow(y - c[1], 2) +
           Math.pow(z - c[2], 2)
-        ) / 0.05);
+        ) / 0.06);
       }
 
       xs.push(x); ys.push(y); zs.push(z);
-
       train.push(dTrain);
       back.push(dBack);
       forward.push(dForward);
@@ -216,28 +212,29 @@ for (let i = 0; i < steps; i++) {
   }
 }
 
-// Initial plot
+/* ---------- INITIAL STATE (TRAINING CLOUD) ---------- */
+
 Plotly.newPlot("pipelineAnimation", [{
   type: "volume",
   x: xs,
   y: ys,
   z: zs,
   value: train,
-  isomin: 0.12,
+  isomin: 0.10,
   isomax: 1.0,
-  opacity: 0.10,
-  surface: { count: 30 },
-  colorscale: "Viridis"
+  opacity: 0.12,
+  surface: { count: 28 },
+  colorscale: "Rainbow"
 }], {
   paper_bgcolor: "#000000",
   plot_bgcolor: "#000000",
-  margin: { l: 20, r: 20, t: 40, b: 20 },
+  margin: { l: 30, r: 30, t: 40, b: 30 },
   scene: {
     aspectmode: "cube",
-    xaxis: { title: "Training", range: [-1.35,1.35] },
-    yaxis: { title: "Backward", range: [-1.35,1.35] },
-    zaxis: { title: "Forward & Stress", range: [-1.35,1.35] },
-    camera: { eye: { x: 2.3, y: 2.1, z: 1.9 } }
+    xaxis: { title: "Training Profit Space", range: [-1.45,1.45] },
+    yaxis: { title: "Backward Validation", range: [-1.45,1.45] },
+    zaxis: { title: "Forward & Stress Survival", range: [-1.45,1.45] },
+    camera: { eye: { x: 2.2, y: 2.0, z: 1.9 } }
   },
   updatemenus: [{
     type: "buttons",
@@ -246,54 +243,61 @@ Plotly.newPlot("pipelineAnimation", [{
       label: "Run Pipeline",
       method: "animate",
       args: [null, {
-        frame: { duration: 1600, redraw: true },
-        transition: { duration: 900 },
+        frame: { duration: 1400, redraw: true },
+        transition: { duration: 900, easing: "cubic-in-out" },
         fromcurrent: true
       }]
     }]
   }]
 });
 
-// Frames
+/* ---------- PIPELINE FRAMES ---------- */
+
 Plotly.addFrames("pipelineAnimation", [
 
+  /* TRAINING */
   {
     name: "Training",
     data: [{
       value: train,
-      isomin: 0.12,
-      opacity: 0.10,
-      colorscale: "Viridis"
+      isomin: 0.10,
+      opacity: 0.12,
+      surface: { count: 28 },
+      colorscale: "Greens"
     }]
   },
 
+  /* BACKWARD VALIDATION */
   {
     name: "Backward",
     data: [{
       value: back,
-      isomin: 0.35,
-      opacity: 0.12,
-      colorscale: "Plasma"
+      isomin: 0.30,
+      opacity: 0.16,
+      surface: { count: 22 },
+      colorscale: "YlOrBr"
     }]
   },
 
+  /* FORWARD TEST */
   {
     name: "Forward",
     data: [{
       value: forward,
-      isomin: 0.45,
-      opacity: 0.16,
-      surface: { count: 20 },
-      colorscale: "Inferno"
+      isomin: 0.48,
+      opacity: 0.22,
+      surface: { count: 14 },
+      colorscale: "OrRd"
     }]
   },
 
+  /* STRESS TEST — FINAL 6 CORES */
   {
     name: "Stress",
     data: [{
       value: stress,
-      isomin: 0.88,
-      opacity: 0.45,
+      isomin: 0.92,
+      opacity: 0.65,
       surface: { count: 6 },
       colorscale: "Reds"
     }]
