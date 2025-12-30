@@ -201,40 +201,41 @@ for (let i = 0; i < steps; i++) {
   }
 }
 
-// Plot
 Plotly.newPlot("robustnessAttractors", [{
   type: "volume",
   x: xs,
   y: ys,
   z: zs,
   value: values,
-  isomin: 0.25,
-  isomax: 1.8,
-  opacity: 0.12,
-  surface: { count: 22 },
+  isomin: 0.15,        // ↓ show more outer cloud
+  isomax: 1.6,         // ↑ avoid peak clipping
+  opacity: 0.08,       // ↓ softer edges
+  surface: { count: 26 },
   colorscale: "Rainbow"
 }], {
   paper_bgcolor: "#000000",
   plot_bgcolor: "#000000",
-  margin: { l: 0, r: 0, t: 0, b: 0 },
+  margin: { l: 20, r: 20, t: 20, b: 20 },
   scene: {
+    aspectmode: "cube",   
     xaxis: {
       title: "Training Profit Landscape",
-      range: [-1, 1]
+      range: [-1.2, 1.2]  
     },
     yaxis: {
       title: "Backward Validation Retention",
-      range: [-1, 1]
+      range: [-1.2, 1.2]
     },
     zaxis: {
       title: "Forward & Stress Robustness",
-      range: [-1, 1]
+      range: [-1.2, 1.2]
     },
     camera: {
-      eye: { x: 1.6, y: 1.4, z: 1.2 }
+      eye: { x: 2.0, y: 2.0, z: 1.8 } 
     }
   }
 });
+
 /* ================= ALPHA–BETA STABILITY ================= */
 
 const alpha = [], beta = [], stability = [];
