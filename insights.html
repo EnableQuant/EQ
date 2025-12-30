@@ -46,9 +46,7 @@
   Color = Stress Test Survival. Peaks correspond to parameters consistently surviving all stages.
 </p>
 
-<div id="robustnessAttractors" style="height:600px;"></div>
-
-
+<div id="pipelineAnimation" style="height:620px;"></div>
 </section>
 
   <!-- ================= ALPHA BETA SURFACE ================= -->
@@ -151,90 +149,113 @@ Plotly.newPlot("robustnessSurface", [{
 
 
 
-/* ================= MULTI-STAGE ROBUSTNESS ATTRACTOR FIELD ================= */
+/* ================= PARAMETER SURVIVORSHIP ANIMATION ================= */
 
-// Grid resolution
-const steps = 30;
-const xs = [];
-const ys = [];
-const zs = [];
-const values = [];
+const steps = 28;
+const xs = [], ys = [], zs = [];
+const train = [], back = [], forward = [];
 
 for (let i = 0; i < steps; i++) {
   for (let j = 0; j < steps; j++) {
     for (let k = 0; k < steps; k++) {
 
-      // Normalized parameter space [-1, 1]
       const x = -1 + (2 * i) / (steps - 1);
       const y = -1 + (2 * j) / (steps - 1);
       const z = -1 + (2 * k) / (steps - 1);
 
-      // -------- Core 1: Training (wide, noisy)
-      const coreTraining =
-        Math.exp(-(x*x + y*y + z*z) / 1.2) *
+      // Training core (wide)
+      const dTrain =
+        Math.exp(-(x*x + y*y + z*z) / 1.3) *
         (0.85 + 0.15 * Math.random());
 
-      // -------- Core 2: Backward validation (medium)
-      const coreBackward =
+      // Backward core (medium)
+      const dBack =
         Math.exp(-(
-          Math.pow(x - 0.45, 2) +
+          Math.pow(x - 0.4, 2) +
           Math.pow(y + 0.35, 2) +
-          Math.pow(z - 0.25, 2)
+          Math.pow(z - 0.3, 2)
         ) / 0.45);
 
-      // -------- Core 3: Forward + Stress (tight)
-      const coreForward =
+      // Forward + stress (tight)
+      const dForward =
         Math.exp(-(
           Math.pow(x + 0.3, 2) +
           Math.pow(y - 0.45, 2) +
-          Math.pow(z + 0.4, 2)
-        ) / 0.18);
-
-      const robustness =
-        coreTraining + coreBackward + coreForward;
+          Math.pow(z + 0.35, 2)
+        ) / 0.15);
 
       xs.push(x);
       ys.push(y);
       zs.push(z);
-      values.push(robustness);
+      train.push(dTrain);
+      back.push(dTrain + dBack);
+      forward.push(dTrain + dBack + dForward);
     }
   }
 }
 
-Plotly.newPlot("robustnessAttractors", [{
+// Initial plot (training sweep)
+Plotly.newPlot("pipelineAnimation", [{
   type: "volume",
   x: xs,
   y: ys,
   z: zs,
-  value: values,
-  isomin: 0.15,        // ↓ show more outer cloud
-  isomax: 1.6,         // ↑ avoid peak clipping
-  opacity: 0.08,       // ↓ softer edges
-  surface: { count: 26 },
+  value: train,
+  isomin: 0.12,
+  isomax: 1.2,
+  opacity: 0.10,
+  surface: { count: 22 },
   colorscale: "Rainbow"
 }], {
   paper_bgcolor: "#000000",
   plot_bgcolor: "#000000",
-  margin: { l: 20, r: 20, t: 20, b: 20 },
+  margin: { l: 20, r: 20, t: 40, b: 20 },
   scene: {
-    aspectmode: "cube",   
-    xaxis: {
-      title: "Training Profit Landscape",
-      range: [-1.2, 1.2]  
-    },
-    yaxis: {
-      title: "Backward Validation Retention",
-      range: [-1.2, 1.2]
-    },
-    zaxis: {
-      title: "Forward & Stress Robustness",
-      range: [-1.2, 1.2]
-    },
-    camera: {
-      eye: { x: 2.0, y: 2.0, z: 1.8 } 
-    }
-  }
+    aspectmode: "cube",
+    xaxis: { title: "Training Profit Landscape", range: [-1.2,1.2] },
+    yaxis: { title: "Backward Validation", range: [-1.2,1.2] },
+    zaxis: { title: "Forward & Stress Robustness", range: [-1.2,1.2] },
+    camera: { eye: { x: 2, y: 2, z: 1.8 } }
+  },
+  updatemenus: [{
+    type: "buttons",
+    showactive: false,
+    buttons: [{
+      label: "Run Pipeline",
+      method: "animate",
+      args: [null, {
+        frame: { duration: 1400, redraw: true },
+        transition: { duration: 700 },
+        fromcurrent: true
+      }]
+    }]
+  }]
 });
+
+// Animation frames
+Plotly.addFrames("pipelineAnimation", [
+
+  {
+    name: "Training",
+    data: [{ value: train, isomin: 0.12, opacity: 0.10 }]
+  },
+
+  {
+    name: "Backward",
+    data: [{ value: back, isomin: 0.25, opacity: 0.12 }]
+  },
+
+  {
+    name: "Forward",
+    data: [{ value: forward, isomin: 0.45, opacity: 0.14 }]
+  },
+
+  {
+    name: "Stress",
+    data: [{ value: forward, isomin: 0.75, opacity: 0.18 }]
+  }
+
+]);
 
 /* ================= ALPHA–BETA STABILITY ================= */
 
