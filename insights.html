@@ -154,72 +154,82 @@ Plotly.newPlot("robustnessSurface", [{
 /* ================= MULTI-STAGE ROBUSTNESS ATTRACTOR FIELD ================= */
 
 // Grid resolution
-const gridSize = 45;
-const axis = [];
-for (let i = -1; i <= 1; i += 2 / gridSize) axis.push(i);
+const steps = 30;
+const xs = [];
+const ys = [];
+const zs = [];
+const values = [];
 
-// 3D density field
-const density = [];
+for (let i = 0; i < steps; i++) {
+  for (let j = 0; j < steps; j++) {
+    for (let k = 0; k < steps; k++) {
 
-for (let xi = 0; xi < axis.length; xi++) {
-  const row = [];
-  for (let yi = 0; yi < axis.length; yi++) {
-    const col = [];
-    for (let zi = 0; zi < axis.length; zi++) {
-
-      const x = axis[xi];
-      const y = axis[yi];
-      const z = axis[zi];
+      // Normalized parameter space [-1, 1]
+      const x = -1 + (2 * i) / (steps - 1);
+      const y = -1 + (2 * j) / (steps - 1);
+      const z = -1 + (2 * k) / (steps - 1);
 
       // -------- Core 1: Training (wide, noisy)
-      const d1 =
-        Math.exp(-(x*x + y*y + z*z) / 0.9) *
-        (0.8 + 0.2 * Math.random());
+      const coreTraining =
+        Math.exp(-(x*x + y*y + z*z) / 1.2) *
+        (0.85 + 0.15 * Math.random());
 
       // -------- Core 2: Backward validation (medium)
-      const d2 =
+      const coreBackward =
         Math.exp(-(
-          Math.pow(x - 0.4, 2) +
-          Math.pow(y + 0.3, 2) +
-          Math.pow(z - 0.2, 2)
-        ) / 0.35);
+          Math.pow(x - 0.45, 2) +
+          Math.pow(y + 0.35, 2) +
+          Math.pow(z - 0.25, 2)
+        ) / 0.45);
 
-      // -------- Core 3: Forward + Stress (tight, sharp)
-      const d3 =
+      // -------- Core 3: Forward + Stress (tight)
+      const coreForward =
         Math.exp(-(
-          Math.pow(x + 0.25, 2) +
-          Math.pow(y - 0.4, 2) +
-          Math.pow(z + 0.35, 2)
-        ) / 0.12);
+          Math.pow(x + 0.3, 2) +
+          Math.pow(y - 0.45, 2) +
+          Math.pow(z + 0.4, 2)
+        ) / 0.18);
 
-      // Combined robustness
-      col.push(d1 + d2 + d3);
+      const robustness =
+        coreTraining + coreBackward + coreForward;
+
+      xs.push(x);
+      ys.push(y);
+      zs.push(z);
+      values.push(robustness);
     }
-    row.push(col);
   }
-  density.push(row);
 }
 
-// Volume rendering
+// Plot
 Plotly.newPlot("robustnessAttractors", [{
   type: "volume",
-  x: axis,
-  y: axis,
-  z: axis,
-  value: density.flat(2),
-  isomin: 0.15,
-  isomax: 1.4,
+  x: xs,
+  y: ys,
+  z: zs,
+  value: values,
+  isomin: 0.25,
+  isomax: 1.8,
   opacity: 0.12,
-  surface: { count: 18 },
+  surface: { count: 22 },
   colorscale: "Rainbow"
 }], {
   paper_bgcolor: "#ffffff",
   plot_bgcolor: "#ffffff",
   margin: { l: 0, r: 0, t: 0, b: 0 },
   scene: {
-    xaxis: { title: "Training Profit Landscape", range: [-1,1] },
-    yaxis: { title: "Backward Validation Retention", range: [-1,1] },
-    zaxis: { title: "Forward & Stress Robustness", range: [-1,1] },
+    xaxis: {
+      title: "Training Profit Landscape",
+      range: [-1, 1]
+    },
+    yaxis: {
+      title: "Backward Validation Retention",
+      range: [-1, 1]
+    },
+    zaxis: {
+      title: "Forward & Stress Robustness",
+      range: [-1, 1]
+    },
     camera: {
       eye: { x: 1.6, y: 1.4, z: 1.2 }
     }
